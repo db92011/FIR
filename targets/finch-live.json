@@ -1,0 +1,99 @@
+{
+  "id": "finch-live",
+  "type": "web",
+  "entry": "https://finchisacinch.com/app?preview=1",
+  "flows": [
+    "public-app",
+    "paywall"
+  ],
+  "journeys": [],
+  "max_attempts": 5,
+  "hammer": {
+    "enabled": true,
+    "mode": "public_live",
+    "stop_on_failure": true,
+    "cooldown_ms": 1500,
+    "thresholds": {
+      "max_error_rate": 0.05,
+      "max_p95_ms": 2500,
+      "max_mean_ms": 1500
+    },
+    "stages": [
+      {
+        "label": "warmup",
+        "concurrency": 10,
+        "total_requests": 10,
+        "pause_ms": 0
+      },
+      {
+        "label": "ramp_25",
+        "concurrency": 25,
+        "total_requests": 25,
+        "pause_ms": 0
+      },
+      {
+        "label": "ramp_50",
+        "concurrency": 50,
+        "total_requests": 50,
+        "pause_ms": 0
+      }
+    ],
+    "routes": [
+      {
+        "id": "finch-core",
+        "label": "Core reply path",
+        "url": "https://finchisacinch.com/api/finch",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "input": "Please write a short friendly reply saying thank you.",
+          "tone": "friendly",
+          "mode": "reply",
+          "outlang": "auto",
+          "signature": ""
+        },
+        "expected_statuses": [
+          200
+        ]
+      },
+      {
+        "id": "finch-plan",
+        "label": "Plan lookup path",
+        "url": "https://finchisacinch.com/api/plan",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "x-finch-email": "fir+finch@example.com",
+          "x-finch-device": "fir-device-capacity"
+        },
+        "body": {
+          "email": "fir+finch@example.com",
+          "device_id": "fir-device-capacity"
+        },
+        "expected_statuses": [
+          200
+        ]
+      },
+      {
+        "id": "finch-device-negative",
+        "label": "Device removal negative path",
+        "url": "https://finchisacinch.com/api/devices/remove-oldest",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "x-finch-email": "fir+finch@example.com",
+          "x-finch-device": "fir-device-capacity"
+        },
+        "body": {
+          "email": "fir+finch@example.com",
+          "device_id": "fir-device-capacity"
+        },
+        "expected_statuses": [
+          403
+        ]
+      }
+    ]
+  }
+}

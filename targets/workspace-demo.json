@@ -1,0 +1,35 @@
+{
+  "id": "workspace-demo",
+  "type": "web",
+  "entry": "http://127.0.0.1:4173",
+  "flows": [
+    "generate-inspect-balance"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "files",
+          "paths": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/sayit/generate-inspect-balance/latest.json"
+          ]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && npm run linux:local",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "read_latest",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/sayit/generate-inspect-balance/latest.json"
+  },
+  "voltmeter": {
+    "mode": "read_latest",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}

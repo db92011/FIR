@@ -1,0 +1,191 @@
+{
+  "id": "hopper111-shell",
+  "type": "local_shell",
+  "entry": "http://127.0.0.1:43111",
+  "flows": [
+    "dashboard-shell",
+    "contacts-shell",
+    "product-intake-shell"
+  ],
+  "journeys": [
+    {
+      "id": "shell:contacts-handoff",
+      "title": "Insert a contact in the shell and hand it off to Hopper",
+      "surface": "hopper111.contacts-shell",
+      "runtime": "linux_lucy_live",
+      "flow": "contacts-shell",
+      "steps": [
+        {
+          "label": "Open the local Contacts Shell",
+          "action": "open_surface",
+          "target": "http://127.0.0.1:43111/contacts-shell"
+        },
+        {
+          "label": "Fill the intake form with a test contact",
+          "action": "fill_form",
+          "target": "contacts-intake-form"
+        },
+        {
+          "label": "Submit the handoff action",
+          "action": "click",
+          "target": "create-contact-handoff"
+        },
+        {
+          "label": "Refresh the contacts list and confirm the inserted contact appears",
+          "action": "reload_and_verify",
+          "target": "current-contacts"
+        }
+      ],
+      "assertions": {
+        "ui": [
+          "The Contacts Shell stays visually stable through the insert flow.",
+          "The contact confirmation list shows the saved contact with a real resolved name."
+        ],
+        "runtime": [
+          "The insert path writes through Hopper and assigns Linux runtime ownership."
+        ],
+        "persistence": [
+          "A new Hopper account row exists for the inserted contact.",
+          "The linked platform row is stamped with the Linux runtime owner."
+        ]
+      },
+      "cleanup": {
+        "mode": "strict",
+        "actions": [
+          "Delete the verification contact after the run.",
+          "Delete any linked platform row created for the verification contact."
+        ],
+        "verify": [
+          "The verification contact no longer appears in the shell list or Hopper records."
+        ]
+      }
+    },
+    {
+      "id": "shell:product-intake-save",
+      "title": "Generate product doctrine in the shell and save it to Hopper",
+      "surface": "hopper111.product-intake-shell",
+      "runtime": "linux_lucy_live",
+      "flow": "product-intake-shell",
+      "steps": [
+        {
+          "label": "Open the Product Intake Shell",
+          "action": "open_surface",
+          "target": "http://127.0.0.1:43111/product-intake-shell"
+        },
+        {
+          "label": "Fill the product intake form with verification data",
+          "action": "fill_form",
+          "target": "product-intake-form"
+        },
+        {
+          "label": "Run AI intake and then save the product",
+          "action": "click_sequence",
+          "target": "run-ai-intake-then-save"
+        }
+      ],
+      "assertions": {
+        "ui": [
+          "The product intake shell keeps the doctrine workspace readable.",
+          "The doctrine pane fills with a generated payload before save."
+        ],
+        "runtime": [
+          "The AI intake path responds through Hopper's shell API.",
+          "The save path persists a product payload through Hopper."
+        ],
+        "persistence": [
+          "The saved Hopper product contains the canonical URL and doctrine JSON."
+        ]
+      },
+      "cleanup": {
+        "mode": "strict",
+        "actions": [
+          "Delete the verification product after the run."
+        ],
+        "verify": [
+          "The verification product no longer exists in Hopper storage."
+        ]
+      }
+    }
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "pointer": {
+      "requirements": [
+        {
+          "type": "files",
+          "paths": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/FIR/state/hopper111-shell-pointer-latest.json"
+          ]
+        }
+      ]
+    },
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:43111",
+          "expected_status": [200]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "env",
+          "env_files": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local"
+          ],
+          "vars": [
+            "WORKER_BASE_URL",
+            "LUCY_DIRECT_URL"
+          ]
+        },
+        {
+          "type": "http",
+          "url_env": "WORKER_BASE_URL",
+          "path": "/api/health",
+          "expected_status": [200],
+          "env_files": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local"
+          ],
+          "header_map": {
+            "CF_ACCESS_CLIENT_ID": "cf-access-client-id",
+            "CF_ACCESS_CLIENT_SECRET": "cf-access-client-secret"
+          }
+        },
+        {
+          "type": "http",
+          "url_env": "LUCY_DIRECT_URL",
+          "path": "/health",
+          "expected_status": [200],
+          "env_files": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local"
+          ]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "read_latest",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/FIR/state/hopper111-shell-pointer-latest.json"
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app hopper111-shell --flow dashboard-shell",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app hopper111-shell --flow contacts-shell",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app hopper111-shell --flow product-intake-shell"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/hopper111-shell/dashboard-shell/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/hopper111-shell/contacts-shell/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/hopper111-shell/product-intake-shell/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && npm run hopper:lucy",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}

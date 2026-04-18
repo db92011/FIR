@@ -1,0 +1,13 @@
+node_modules/
+
+# Runtime output
+artifacts/
+state/
+
+# Local env and secret hydration
+.env
+.env.*
+!.env.example
+
+# OS/editor noise
+.DS_Store

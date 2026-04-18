@@ -1,0 +1,112 @@
+{
+  "id": "sayit-live",
+  "type": "web",
+  "entry": "https://sayitapp.pages.dev/app.html?preview=app-mobile",
+  "flows": [
+    "install-surface",
+    "app-surface",
+    "translation-api"
+  ],
+  "journeys": [],
+  "pointer": {
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --surface cloudflare --domain sayitapp.pages.dev",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "read_latest",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/sayit/generate-inspect-balance/latest.json"
+  },
+  "voltmeter": {
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile-base64 'eyJpZCI6InNheWl0LXJ1bnRpbWUiLCJuYW1lIjoiU2F5SXQgcnVudGltZSB0cnV0aCIsImtpbmQiOiJzaW5nbGVfcnVudGltZV9hcGkiLCJnb2FsIjoiVmVyaWZ5IHRoZSBsaXZlIFNheUl0IHRyYW5zbGF0aW9uIHJ1bnRpbWUgcmV0dXJucyBhIHRydXRoZnVsIHByb2R1Y3Rpb24gcmVzcG9uc2UuIiwiZGVzaXJlZF9yZXN1bHQiOiJUaGUgbGl2ZSBydW50aW1lIHJldHVybnMgYSB2YWxpZCB0cmFuc2xhdGlvbiBwYXlsb2FkIGZyb20gdGhlIENsb3VkZmxhcmUgUGFnZXMgZnVuY3Rpb24uIiwidGFyZ2V0cyI6eyJiYXNlX3VybCI6Imh0dHBzOi8vc2F5aXRhcHAucGFnZXMuZGV2IiwiaGVhbHRoX3BhdGgiOiIvYXBpL3RyYW5zbGF0ZSIsImFjdGlvbl9wYXRoIjoiL2FwaS90cmFuc2xhdGUifSwicHJvYmUiOnsibWV0aG9kIjoiUE9TVCIsImhlYWRlcnMiOnsiY29udGVudC10eXBlIjoiYXBwbGljYXRpb24vanNvbiJ9LCJib2R5Ijp7InJlY2lwaWVudCI6IkNvd29ya2VyIiwicmVsYXRpb25zaGlwIjoiQ293b3JrZXIiLCJhZnRlclN0YXRlIjoiQ2FsbSIsIm1lc3NhZ2UiOiJDYW4geW91IHNlbmQgdGhlIGZpbmFsIG51bWJlcnMgYmVmb3JlIGx1bmNoIHNvIEkgY2FuIGZpbmlzaCB0aGUgZGVjaz8iLCJzaXR1YXRpb24iOiJJIG5lZWQgYSBjbGVhciBhbmQgY2FsbSBmb2xsb3ctdXAgZm9yIGEgY293b3JrZXIgd2hvIGhhcyBub3Qgc2VudCB0aGUgbnVtYmVycyB5ZXQuIn19LCJleHBlY3RlZF9vdXRjb21lIjp7ImhlYWx0aF9ydW50aW1lIjoiY2xvdWRmbGFyZS1wYWdlcy1mdW5jdGlvbiIsImFjdGlvbl9ydW50aW1lIjoiY2xvdWRmbGFyZS1wYWdlcy1mdW5jdGlvbiIsInJlcXVpcmVfdHJhbnNsYXRpb25fcHJpbWFyeSI6dHJ1ZSwicmVxdWlyZV9tb2RlIjp0cnVlfX0='",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json"
+  },
+  "max_attempts": 5,
+  "hammer": {
+    "enabled": true,
+    "mode": "public_live",
+    "stop_on_failure": true,
+    "cooldown_ms": 1500,
+    "thresholds": {
+      "max_error_rate": 0.05,
+      "max_p95_ms": 2500,
+      "max_mean_ms": 1500
+    },
+    "stages": [
+      {
+        "label": "warmup",
+        "concurrency": 10,
+        "total_requests": 10,
+        "pause_ms": 0
+      },
+      {
+        "label": "ramp_25",
+        "concurrency": 25,
+        "total_requests": 25,
+        "pause_ms": 0
+      },
+      {
+        "label": "ramp_50",
+        "concurrency": 50,
+        "total_requests": 50,
+        "pause_ms": 0
+      }
+    ],
+    "routes": [
+      {
+        "id": "sayit-translate",
+        "label": "Core translation path",
+        "url": "https://sayitapp.pages.dev/api/translate",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "text": "Please translate this into a calm, professional reply.",
+          "intent": "clarify",
+          "audience": "coworker",
+          "tone": "calm",
+          "language": "en"
+        },
+        "expected_statuses": [
+          200
+        ]
+      },
+      {
+        "id": "sayit-plan",
+        "label": "Plan lookup path",
+        "url": "https://sayitapp.pages.dev/api/plan",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "x-sayit-email": "fir+sayit@example.com",
+          "x-sayit-device": "fir-sayit-device"
+        },
+        "body": {
+          "email": "fir+sayit@example.com",
+          "device_id": "fir-sayit-device"
+        },
+        "expected_statuses": [
+          200
+        ]
+      },
+      {
+        "id": "sayit-device-negative",
+        "label": "Device removal negative path",
+        "url": "https://sayitapp.pages.dev/api/devices/remove-oldest",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "x-sayit-email": "fir+sayit@example.com",
+          "x-sayit-device": "fir-sayit-device"
+        },
+        "body": {
+          "email": "fir+sayit@example.com",
+          "device_id": "fir-sayit-device"
+        },
+        "expected_statuses": [
+          400
+        ]
+      }
+    ]
+  }
+}

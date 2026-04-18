@@ -1,0 +1,318 @@
+{
+  "id": "hopper111-live",
+  "type": "web",
+  "entry": "https://hopper111.com",
+  "requiredSecrets": [
+    {
+      "name": "POINTER_CF_API_TOKEN",
+      "tool": "pointer",
+      "instructions": "Create a read-only Cloudflare API token for Pointer live hopper111.com audits, then paste the token value here for standing local FIR access.",
+      "source_url": "https://dash.cloudflare.com/profile/api-tokens",
+      "installs": [
+        {
+          "type": "env_file",
+          "path": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/.env.local",
+          "key": "POINTER_CF_API_TOKEN"
+        }
+      ]
+    },
+    {
+      "name": "POINTER_CF_WRITE_API_TOKEN",
+      "tool": "pointer",
+      "instructions": "Create a write-capable Cloudflare API token for hopper111.com zone settings fixes. Give it Zone Settings: Edit scoped to the hopper111.com zone, then paste the token value here for standing local FIR remediation access.",
+      "source_url": "https://dash.cloudflare.com/profile/api-tokens",
+      "installs": [
+        {
+          "type": "env_file",
+          "path": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/.env.local",
+          "key": "POINTER_CF_WRITE_API_TOKEN"
+        }
+      ]
+    },
+    {
+      "name": "CF_ACCESS_CLIENT_ID",
+      "tool": "screenGenie",
+      "instructions": "Store the Hopper live Cloudflare Access client id so ScreenGenie and Voltmeter can authenticate the protected Hopper and worker surfaces without pausing.",
+      "source_url": "https://dash.cloudflare.com",
+      "installs": [
+        {
+          "type": "env_file",
+          "path": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local",
+          "key": "CF_ACCESS_CLIENT_ID"
+        }
+      ]
+    },
+    {
+      "name": "CF_ACCESS_CLIENT_SECRET",
+      "tool": "screenGenie",
+      "instructions": "Store the Hopper live Cloudflare Access client secret so ScreenGenie and Voltmeter can authenticate the protected Hopper and worker surfaces without pausing.",
+      "source_url": "https://dash.cloudflare.com",
+      "installs": [
+        {
+          "type": "env_file",
+          "path": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local",
+          "key": "CF_ACCESS_CLIENT_SECRET"
+        }
+      ]
+    }
+  ],
+  "flows": [
+    "live-home",
+    "contacts",
+    "product-intake"
+  ],
+  "journeys": [
+    {
+      "id": "contacts:create-contact",
+      "title": "Create a contact shell and verify the live save chain",
+      "surface": "hopper111.contacts",
+      "runtime": "linux_lucy_live",
+      "flow": "contacts-rich",
+      "steps": [
+        {
+          "label": "Open the Contacts surface and enter create mode",
+          "action": "open_surface",
+          "target": "https://hopper111.com/contacts"
+        },
+        {
+          "label": "Fill the new contact shell fields with test data",
+          "action": "fill_form",
+          "target": "contact-create-panel"
+        },
+        {
+          "label": "Submit the Save Contact Shell action",
+          "action": "click",
+          "target": "save-contact-shell"
+        },
+        {
+          "label": "Reload the Contacts surface and reselect the saved contact",
+          "action": "reload_and_reselect",
+          "target": "contacts-list"
+        }
+      ],
+      "assertions": {
+        "ui": [
+          "The create panel opens without layout collapse.",
+          "The new contact appears in the contacts list after save.",
+          "The saved contact detail pane matches the submitted values."
+        ],
+        "runtime": [
+          "The save request resolves through the live Linux-backed Lucy runtime path.",
+          "No helper or shell error banner remains after save."
+        ],
+        "persistence": [
+          "A new row exists in accounts for the test contact.",
+          "Linked account_platforms rows exist only for the platforms created during the test."
+        ]
+      },
+      "cleanup": {
+        "mode": "strict",
+        "actions": [
+          "Delete the test contact from the canonical API or persistence path.",
+          "Delete any linked account_platforms rows created for the test contact.",
+          "Clear any helper or local shell test residue created during the run."
+        ],
+        "verify": [
+          "The test contact no longer appears in the contacts list.",
+          "No test rows remain in accounts or account_platforms for the generated test key."
+        ]
+      }
+    },
+    {
+      "id": "contacts:edit-contact",
+      "title": "Edit an existing contact and verify the update path",
+      "surface": "hopper111.contacts",
+      "runtime": "linux_lucy_live",
+      "flow": "contacts-rich",
+      "steps": [
+        {
+          "label": "Open the Contacts surface and select a seeded editable contact",
+          "action": "open_and_select",
+          "target": "contacts-list"
+        },
+        {
+          "label": "Update editable fields in the selected contact shell",
+          "action": "fill_form",
+          "target": "contact-detail-panel"
+        },
+        {
+          "label": "Submit the contact update action",
+          "action": "click",
+          "target": "save-contact-shell"
+        },
+        {
+          "label": "Reload the surface and confirm the edited values persist",
+          "action": "reload_and_verify",
+          "target": "contact-detail-panel"
+        }
+      ],
+      "assertions": {
+        "ui": [
+          "The detail pane remains visually stable through edit mode and save.",
+          "The edited values reappear after reload."
+        ],
+        "runtime": [
+          "The update request reaches the intended live runtime path."
+        ],
+        "persistence": [
+          "The matching accounts row reflects the edited values after save."
+        ]
+      },
+      "cleanup": {
+        "mode": "strict",
+        "actions": [
+          "Restore the seeded contact values changed during the test."
+        ],
+        "verify": [
+          "The seeded contact is back at its canonical baseline values."
+        ]
+      }
+    },
+    {
+      "id": "contacts:bind-reddit",
+      "title": "Bind the Reddit shell and verify helper-side continuity",
+      "surface": "hopper111.contacts",
+      "runtime": "linux_lucy_live",
+      "flow": "contacts-rich",
+      "steps": [
+        {
+          "label": "Open the Contacts surface and select a bind-ready Reddit contact",
+          "action": "open_and_select",
+          "target": "contacts-list"
+        },
+        {
+          "label": "Open the helper or bind controls for the Reddit portal",
+          "action": "open_helper_band",
+          "target": "reddit-portal-controls"
+        },
+        {
+          "label": "Run the bind or resume helper action",
+          "action": "click",
+          "target": "resume-all"
+        },
+        {
+          "label": "Refresh helper state on the selected contact",
+          "action": "click",
+          "target": "refresh-helper"
+        }
+      ],
+      "assertions": {
+        "ui": [
+          "The helper action row remains aligned and readable through the bind flow.",
+          "The selected portal status updates without detached actions or collapsed helper copy."
+        ],
+        "runtime": [
+          "The helper action reaches the Linux Lucy runtime and returns a valid status update.",
+          "No helper continuity error remains after refresh."
+        ],
+        "persistence": [
+          "The platform row for the selected contact reflects the latest bind status."
+        ]
+      },
+      "cleanup": {
+        "mode": "strict",
+        "actions": [
+          "Restore the selected bind-ready contact to its baseline helper state if the run changes it."
+        ],
+        "verify": [
+          "The test contact is left in a known baseline state for the next run."
+        ]
+      }
+    }
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "pointer": {
+      "requirements": [
+        {
+          "type": "env",
+          "env_files": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/.env.local",
+            "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/.env"
+          ],
+          "vars": [
+            "POINTER_CF_API_TOKEN"
+          ]
+        }
+      ]
+    },
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "env",
+          "env_files": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local"
+          ],
+          "vars": [
+            "CF_ACCESS_CLIENT_ID",
+            "CF_ACCESS_CLIENT_SECRET"
+          ]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "env",
+          "env_files": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local"
+          ],
+          "vars": [
+            "WORKER_BASE_URL",
+            "LUCY_DIRECT_URL"
+          ]
+        },
+        {
+          "type": "http",
+          "url_env": "WORKER_BASE_URL",
+          "path": "/api/health",
+          "expected_status": [
+            200
+          ],
+          "env_files": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local"
+          ],
+          "header_map": {
+            "CF_ACCESS_CLIENT_ID": "cf-access-client-id",
+            "CF_ACCESS_CLIENT_SECRET": "cf-access-client-secret"
+          }
+        },
+        {
+          "type": "http",
+          "url_env": "LUCY_DIRECT_URL",
+          "path": "/health",
+          "expected_status": [
+            200
+          ],
+          "env_files": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local"
+          ]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --profile profiles/hopper111-boundary.json --mode verified",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && export $(grep -E '^(CF_ACCESS_CLIENT_ID|CF_ACCESS_CLIENT_SECRET)=' '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local' | xargs) && npm run genie -- --app hopper111 --flow home-rich --cf-access-client-id \"$CF_ACCESS_CLIENT_ID\" --cf-access-client-secret \"$CF_ACCESS_CLIENT_SECRET\"",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && export $(grep -E '^(CF_ACCESS_CLIENT_ID|CF_ACCESS_CLIENT_SECRET)=' '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local' | xargs) && npm run genie -- --app hopper111 --flow contacts-rich --cf-access-client-id \"$CF_ACCESS_CLIENT_ID\" --cf-access-client-secret \"$CF_ACCESS_CLIENT_SECRET\"",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && export $(grep -E '^(CF_ACCESS_CLIENT_ID|CF_ACCESS_CLIENT_SECRET)=' '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local' | xargs) && npm run genie -- --app hopper111 --flow product-intake-rich --cf-access-client-id \"$CF_ACCESS_CLIENT_ID\" --cf-access-client-secret \"$CF_ACCESS_CLIENT_SECRET\""
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/hopper111/home-rich/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/hopper111/contacts-rich/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/hopper111/product-intake-rich/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && npm run hopper:lucy",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}

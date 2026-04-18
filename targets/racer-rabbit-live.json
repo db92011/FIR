@@ -1,0 +1,26 @@
+{
+  "id": "racer-rabbit-live",
+  "type": "web",
+  "entry": "https://racer-rabbits-little-helper.pages.dev/",
+  "flows": [
+    "install-surface",
+    "today-rabbit-balance"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "files",
+          "paths": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/racer-rabbit/today-rabbit-balance/latest.json"
+          ]
+        }
+      ]
+    }
+  },
+  "screenGenie": {
+    "mode": "read_latest",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/racer-rabbit/today-rabbit-balance/latest.json"
+  }
+}
