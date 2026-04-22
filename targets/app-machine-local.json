@@ -1,0 +1,47 @@
+{
+  "id": "app-machine-local",
+  "type": "web",
+  "entry": "http://127.0.0.1:5173",
+  "flows": [
+    "builder-shell"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "files",
+          "paths": [
+            "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/app-machine/builder-shell/latest.json"
+          ]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:5173/",
+          "method": "GET",
+          "expected_status": [200]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --profile profiles/app-machine-local-passive.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run flows -- --app app-machine --flow builder-shell",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/app-machine/builder-shell/latest.json"
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/app-machine-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}
