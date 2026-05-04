@@ -1,0 +1,62 @@
+{
+  "id": "jrnl-local",
+  "type": "web-pwa",
+  "entry": "http://127.0.0.1:4177/home",
+  "flows": [
+    "home",
+    "forum",
+    "safety",
+    "forum-runtime",
+    "lucy-runtime"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4177/home",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:8787/api/health",
+          "method": "GET",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --profile profiles/jrnl-local-passive.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app jrnl --flow home",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app jrnl --flow forum",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app jrnl --flow safety"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/jrnl/home/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/jrnl/forum/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/jrnl/safety/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/jrnl-forum-runtime.json && node src/cli.mjs --profile profiles/jrnl-lucy-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}
