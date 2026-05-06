@@ -1,0 +1,93 @@
+{
+  "id": "spotter-circle-local",
+  "type": "web-pwa",
+  "entry": "http://127.0.0.1:4175/spotter/",
+  "flows": [
+    "marketing",
+    "download",
+    "app"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4175",
+          "path": "/spotter/",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4175",
+          "path": "/spotter/download/",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4175",
+          "path": "/spotter/app/",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4175",
+          "path": "/spotter/",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4175",
+          "path": "/spotter/download/",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4175",
+          "path": "/spotter/app/",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --profile profiles/spotter-circle-local-passive.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app spotter-circle --flow marketing",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app spotter-circle --flow download",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app spotter-circle --flow app"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/spotter-circle/marketing/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/spotter-circle/download/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/spotter-circle/app/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/spotter-circle-local-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}
