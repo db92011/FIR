@@ -109,6 +109,7 @@ async function main() {
     console.log(`Expected app runtime URL: ${result.finalState.expected_app_runtime_url || "unknown"}`);
     console.log(`AIR blocking failures: ${result.finalState.blocking_failure_total ?? "unknown"}`);
     console.log(`AIR recommendations: ${result.finalState.recommendation_total ?? "unknown"}`);
+    console.log(`AIR perfect: ${result.finalState.perfect ? "yes" : "no"}`);
   }
   console.log(`Journeys: ${result.journeys?.selected_journey_count || 0} (${(result.journeys?.selected_journey_ids || []).join(", ") || "none"})`);
   console.log(`Hammer: ${result.hammer?.plan?.status || result.finalState.hammer_status || "unknown"} (${(result.hammer?.plan?.selected_route_ids || result.finalState.hammer_routes || []).join(", ") || "none"})`);

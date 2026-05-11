@@ -75,6 +75,7 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
     const findings = normalizeAppTester(appTester);
     const blockingFailures = findings.filter((failure) => ["critical", "high"].includes(String(failure.severity || "").toLowerCase()));
     const recommendationFailures = findings.filter((failure) => !["critical", "high"].includes(String(failure.severity || "").toLowerCase()));
+    const perfect = findings.length === 0;
     const remediationPlan = buildRemediationPlan(blockingFailures);
     const repairPackets = repairPacketsFromFailures(remediationPlan.active_failures);
     const correction = runCorrectionLoop({
@@ -94,13 +95,14 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
       air_status: appTester?.application_integrity_run?.status || appTester?.status || "unknown",
       app_tester_status: appTester?.status || null,
       package_readiness: appTester?.package_readiness || null,
+      perfect,
       installed_icon_start_url: appTester?.application_integrity_run?.installed_icon_start_url || null,
       expected_app_runtime_url: appTester?.application_integrity_run?.expected_app_runtime_url || null,
       preflight_status: "not_required_for_air",
       preflight_observed_status: preflight.overall,
-      correction_state: correction?.state || (blockingFailures.length === 0 ? "corrected" : "repair_needed"),
-      should_continue: blockingFailures.length > 0,
-      next_action: blockingFailures.length > 0 ? "repair_air_install_integrity" : (recommendationFailures.length > 0 ? "review_air_recommendations" : "none"),
+      correction_state: blockingFailures.length > 0 ? (correction?.state || "repair_needed") : (perfect ? "corrected" : "recommendations_remaining"),
+      should_continue: !perfect,
+      next_action: blockingFailures.length > 0 ? "repair_air_install_integrity" : (recommendationFailures.length > 0 ? "tighten_air_to_100_percent" : "none"),
       failure_total: findings.length,
       blocking_failure_total: blockingFailures.length,
       recommendation_total: recommendationFailures.length,

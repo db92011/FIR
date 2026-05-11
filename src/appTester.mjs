@@ -1,3 +1,5 @@
+import { runInstallClickProbe } from "./clickProbe.mjs";
+
 function text(value, fallback = "") {
   const normalized = String(value ?? "").trim();
   return normalized || fallback;
@@ -97,6 +99,19 @@ function sameUrlOrPath(actual = "", expected = "") {
   } catch {
     return actual === expected;
   }
+}
+
+function defaultClickProbeUrl(url = "") {
+  try {
+    const parsed = new URL(url);
+    if (parsed.searchParams.has("install")) {
+      parsed.searchParams.delete("install");
+      return parsed.toString();
+    }
+  } catch {
+    return url;
+  }
+  return url;
 }
 
 function pathLooksLegacyInstall(url = "") {
@@ -219,6 +234,12 @@ function buildIntegrityStack({ checks, requiredFailures, recommendedFailures, co
         owned_by: "FIR AIR",
         current_signal: scoreChecks(checks.install_shell || []),
         purpose: "marketing-page install action, native prompt/manual install fallback, and installed icon start URL",
+      },
+      {
+        id: "click_integrity",
+        owned_by: "FIR AIR + Playwright",
+        current_signal: scoreChecks(checks.click_probe || []),
+        purpose: "real browser visibility and click outcome classification for the install action",
       },
       {
         id: "cleanup_integrity",
@@ -344,6 +365,7 @@ export async function runAppTester(config = {}) {
   const mixed = mixedContentHints(htmlResult.body);
   const installContract = config.install_contract || config.installContract || {};
   const cleanupContract = config.cleanup_contract || config.cleanupContract || {};
+  const clickProbeContract = config.click_probe || config.clickProbe || {};
   const expectedStartUrl = absoluteUrl(
     installContract.expected_start_url || installContract.expectedStartUrl || installContract.app_runtime_url || installContract.appRuntimeUrl || "",
     finalUrl
@@ -374,6 +396,12 @@ export async function runAppTester(config = {}) {
   const desktopIconStartsApp = Boolean(startUrl) &&
     !sameUrlOrPath(startUrl, finalUrl) &&
     (!expectedStartUrl || sameUrlOrPath(startUrl, expectedStartUrl));
+  const clickProbe = await runInstallClickProbe({
+    url: absoluteUrl(clickProbeContract.url || clickProbeContract.click_url || clickProbeContract.clickUrl || defaultClickProbeUrl(finalUrl), finalUrl),
+    expectedStartUrl,
+    appRuntimeUrl,
+    config: clickProbeContract,
+  });
   const installShellChecks = [
     check(
       "install_shell_marketing_entry",
@@ -421,6 +449,52 @@ export async function runAppTester(config = {}) {
         ? `Legacy route references: ${legacyReferences.join(", ")}`
         : "No legacy install/download routes referenced.",
       { legacy_references: legacyReferences }
+    ),
+  ];
+  const clickProbeChecks = clickProbe.enabled === false ? [] : [
+    check(
+      "install_click_target_visible",
+      "AIR can see a visible install/download action in a real browser.",
+      clickProbe.target?.visible === true,
+      "high",
+      clickProbe.target?.visible === true
+        ? `Visible target: ${clickProbe.target.meta?.text || clickProbe.target.selector || "install action"}`
+        : clickProbe.error || "No visible install target found.",
+      { click_probe: clickProbe }
+    ),
+    check(
+      "install_click_action_invoked",
+      "AIR can click the visible install action.",
+      clickProbe.clicked === true,
+      "high",
+      clickProbe.clicked === true ? "Click completed." : clickProbe.error || clickProbe.outcome || "Click did not complete.",
+      { click_probe: clickProbe }
+    ),
+    check(
+      "install_click_no_unexpected_download",
+      "Install action does not download an unexpected file.",
+      !clickProbe.download || clickProbe.download.allowed === true,
+      "high",
+      clickProbe.download
+        ? `Downloaded ${clickProbe.download.suggested_filename || clickProbe.download.url || "unknown file"} (${clickProbe.download.kind}); allowed=${clickProbe.download.allowed}`
+        : "No file download observed.",
+      { click_probe: clickProbe }
+    ),
+    check(
+      "install_click_not_app_open_only",
+      "Install action does not merely open the app surface.",
+      !["app_runtime_navigation", "popup_app_runtime_navigation"].includes(clickProbe.outcome),
+      "high",
+      `outcome=${clickProbe.outcome || "unknown"}; after=${clickProbe.after_url || "unknown"}`,
+      { click_probe: clickProbe }
+    ),
+    check(
+      "install_click_install_result_confirmed",
+      "Install click reaches a confirmed install path: PWA prompt, platform guidance, or explicitly allowed app package.",
+      clickProbe.status === "passed",
+      "high",
+      `outcome=${clickProbe.outcome || "unknown"}; desired=${clickProbe.desired_result || "PWA install or platform guidance"}`,
+      { click_probe: clickProbe }
     ),
   ];
   const manifestChecks = [
@@ -479,6 +553,7 @@ export async function runAppTester(config = {}) {
   ];
   const checks = {
     install_shell: installShellChecks,
+    click_probe: clickProbeChecks,
     cleanup: cleanupChecks,
     manifest: manifestChecks,
     service_worker: serviceWorkerChecks,
@@ -491,14 +566,15 @@ export async function runAppTester(config = {}) {
   const requiredFailures = allChecks.filter((item) => !item.pass && item.severity === "high");
   const recommendedFailures = allChecks.filter((item) => !item.pass && item.severity !== "high");
   const score = Number((
-    scoreChecks(installShellChecks) * 0.22 +
-    scoreChecks(cleanupChecks) * 0.13 +
-    scoreChecks(manifestChecks) * 0.2 +
-    scoreChecks(serviceWorkerChecks) * 0.16 +
-    scoreChecks(securityChecks) * 0.14 +
-    scoreChecks(appExperienceChecks) * 0.06 +
-    scoreChecks(platformChecks) * 0.05 +
-    scoreChecks(socialMetadataChecks) * 0.04
+    scoreChecks(installShellChecks) * 0.18 +
+    scoreChecks(clickProbeChecks) * 0.18 +
+    scoreChecks(cleanupChecks) * 0.1 +
+    scoreChecks(manifestChecks) * 0.18 +
+    scoreChecks(serviceWorkerChecks) * 0.14 +
+    scoreChecks(securityChecks) * 0.12 +
+    scoreChecks(appExperienceChecks) * 0.04 +
+    scoreChecks(platformChecks) * 0.03 +
+    scoreChecks(socialMetadataChecks) * 0.03
   ).toFixed(3));
   const integrityStack = buildIntegrityStack({ checks, requiredFailures, recommendedFailures, config });
 
@@ -542,7 +618,10 @@ export async function runAppTester(config = {}) {
         "The marketing page must install the PWA or show platform install steps; the installed icon must open the app runtime.",
       cleanup_rule:
         "After install routing changes, old install/download links and button-maze remnants must be removed from the inspected marketing shell.",
+      click_rule:
+        "A real browser must be able to see and click the install action, and AIR must classify whether it opened the app, showed install guidance, triggered PWA install, or downloaded a file.",
     },
+    click_probe: clickProbe,
     checks,
     findings: [...requiredFailures, ...recommendedFailures],
   };

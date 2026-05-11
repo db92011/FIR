@@ -130,6 +130,7 @@ Voltmeter nerve-walk specs stimulate runtime nerves and assert that inputs reach
 App Tester is the FIR lane for actual apps and PWAs. Do not enable it for ordinary web interfaces that only need ScreenGenie and Voltmeter coverage. It follows a PWABuilder-style report-card model:
 
 - AIR install integrity: marketing-page installer, install action, platform fallback guidance, and installed icon start URL
+- AIR click integrity: real browser visibility and click classification for install actions
 - AIR cleanup integrity: stale `/install` and `/download` links removed from the marketing shell after route changes
 - app preview: name, description, start URL, scope, display mode, theme color, icon posture
 - manifest readiness: manifest link, valid JSON, name, start URL, app display mode, 192px and 512px icons
@@ -143,6 +144,7 @@ The full App Tester stack contract is:
 
 - `Functional`: Playwright flow packs plus FIR journeys
 - `AIR install integrity`: marketing shell install action and installed-icon runtime proof
+- `AIR click integrity`: visible install action, actual click, no unexpected download, no app-open-only fake install
 - `AIR cleanup integrity`: old install/download pages, CTA paths, and button-maze remnants removed or explicitly allowed as redirect shims
 - `PWA compliance`: FIR App Tester plus Lighthouse/PWABuilder-style rules
 - `Platform`: iOS/WebKit and Android/Chromium posture
@@ -191,7 +193,7 @@ For install work, the target should point App Tester at the app marketing shell,
 
 It also auto-runs when the target is declared as `web-pwa`, or when Pointer/target surface contracts mark the flow/tag as `app-surface`, `public-app`, or `pwa`. This keeps the tongue in Pointer: Pointer identifies what kind of surface FIR is touching, while App Tester performs the specialized PWA/package-readiness exam.
 
-High-severity App Tester findings block the app-readiness lane. Medium and low findings stay visible as AIR recommendations so consistency issues are not hidden, but they do not turn a clean install path into an install failure.
+High-severity App Tester findings block the app-readiness lane. Medium and low findings stay visible as AIR recommendations so consistency issues are not hidden, but they do not turn a clean install path into an install failure. AIR keeps `should_continue` active until the run is perfect, so the loop can keep tightening after blockers are gone.
 
 The included `workspace-demo` target is a safe starter target that uses:
 
