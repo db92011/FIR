@@ -26,7 +26,7 @@
         {
           "label": "circle-home-to-finch-page",
           "role": "link",
-          "name": "Open Finch page",
+          "name": "View Finch",
           "expected_url": "https://circlethepeople.com/finch/"
         },
         {
