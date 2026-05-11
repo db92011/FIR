@@ -10,10 +10,30 @@
   "appTester": {
     "enabled": true,
     "kind": "pwa",
-    "url": "https://circlethepeople.com/spotter/?source=fir&install=1",
+    "url": "https://circlethepeople.com/spotter/",
     "install_contract": {
-      "app_runtime_url": "https://circlethepeople.com/spotter/app/",
-      "expected_start_url": "https://circlethepeople.com/spotter/app/"
+      "app_runtime_url": "https://circlethepeople.com/spotter/app/?source=pwa",
+      "expected_start_url": "https://circlethepeople.com/spotter/app/?source=pwa",
+      "forbid_standalone_entry_redirect": true
+    },
+    "url_contract": {
+      "allowed_human_links": [
+        "https://circlethepeople.com/",
+        "https://circlethepeople.com/privacy.html",
+        "https://circlethepeople.com/old-vs-new"
+      ]
+    },
+    "handoff_contract": {
+      "enabled": true,
+      "start_url": "https://circlethepeople.com/",
+      "steps": [
+        {
+          "label": "circle-home-to-spotter-page",
+          "role": "link",
+          "name": "Spotter",
+          "expected_url": "https://circlethepeople.com/spotter/"
+        }
+      ]
     }
   },
   "pointer": {

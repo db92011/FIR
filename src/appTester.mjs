@@ -149,6 +149,17 @@ function pathLooksLegacyInstall(url = "") {
   }
 }
 
+function hasStandaloneRuntimeRedirect(source = "", runtimeUrl = "") {
+  const standaloneGuard = /display-mode\W*standalone|navigator\.standalone/i.test(source);
+  const locationRedirect = /(?:window\.)?location\.(?:replace|assign)\s*\(|(?:window\.)?location\.href\s*=/i.test(source);
+  let runtimePath = "";
+  try {
+    runtimePath = new URL(runtimeUrl).pathname;
+  } catch {}
+
+  return standaloneGuard && locationRedirect && (!runtimePath || source.includes(runtimePath));
+}
+
 function legacyRouteReferences(source = "", baseUrl = "", allowedPatterns = []) {
   const candidates = [];
   const attrMatches = source.matchAll(/\b(?:href|src|action|data-href|data-url)=["']([^"']+)["']/gi);
@@ -401,6 +412,9 @@ export async function runAppTester(config = {}) {
   const clickProbeContract = config.click_probe || config.clickProbe || {};
   const urlContract = config.url_contract || config.urlContract || {};
   const handoffContract = config.handoff_contract || config.handoffContract || {};
+  const forbidStandaloneEntryRedirect =
+    installContract.forbid_standalone_entry_redirect === true ||
+    installContract.forbidStandaloneEntryRedirect === true;
   const expectedStartUrl = absoluteUrl(
     installContract.expected_start_url || installContract.expectedStartUrl || installContract.app_runtime_url || installContract.appRuntimeUrl || "",
     finalUrl
@@ -423,6 +437,7 @@ export async function runAppTester(config = {}) {
   const hasInstallAction = hasAnyPattern(combinedSource, installActionPatterns);
   const hasNativePromptHandler = /beforeinstallprompt/i.test(combinedSource);
   const hasManualInstallFallback = hasAnyPattern(combinedSource, manualInstallPatterns);
+  const standaloneRuntimeRedirect = hasStandaloneRuntimeRedirect(combinedSource, appRuntimeUrl || expectedStartUrl);
   const legacyReferences = legacyRouteReferences(
     combinedSource,
     finalUrl,
@@ -451,6 +466,17 @@ export async function runAppTester(config = {}) {
       "high",
       finalUrl
     ),
+    ...(forbidStandaloneEntryRedirect ? [
+      check(
+        "install_shell_no_standalone_runtime_redirect",
+        "Marketing shell does not redirect itself into the app runtime when opened in standalone/PWA mode.",
+        !standaloneRuntimeRedirect,
+        "high",
+        standaloneRuntimeRedirect
+          ? "Standalone display-mode redirect to the runtime was found in the marketing shell."
+          : "No standalone runtime redirect found."
+      ),
+    ] : []),
     check(
       "install_shell_action_present",
       "Marketing shell exposes an install action instead of only an open-app link.",
