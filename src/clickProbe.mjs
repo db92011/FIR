@@ -325,3 +325,102 @@ export async function runInstallClickProbe({
     if (browser) await browser.close().catch(() => {});
   }
 }
+
+function exactUrl(actual = "", expected = "") {
+  try {
+    return new URL(actual).href === new URL(expected).href;
+  } catch {
+    return actual === expected;
+  }
+}
+
+async function findHandoffTarget(page, step = {}) {
+  if (step.selector) {
+    const locator = page.locator(step.selector).first();
+    if (await locator.isVisible().catch(() => false)) return locator;
+  }
+  if (step.name) {
+    const role = step.role || "link";
+    const locator = page.getByRole(role, { name: step.exact === false ? new RegExp(step.name, "i") : step.name }).first();
+    if (await locator.isVisible().catch(() => false)) return locator;
+  }
+  if (step.text) {
+    const locator = page.getByText(step.exact === false ? new RegExp(step.text, "i") : step.text).first();
+    if (await locator.isVisible().catch(() => false)) return locator;
+  }
+  return null;
+}
+
+export async function runUrlHandoffProbe(config = {}) {
+  if (config.enabled === false || !config.start_url && !config.startUrl) {
+    return {
+      enabled: false,
+      status: "skipped",
+      reason: "No URL handoff contract configured.",
+    };
+  }
+
+  const startUrl = config.start_url || config.startUrl;
+  const steps = asArray(config.steps);
+  const timeoutMs = Number(config.timeout_ms || config.timeoutMs || 15000);
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: config.headed === true ? false : true });
+    const page = await browser.newPage({
+      viewport: { width: Number(config.width || 1280), height: Number(config.height || 900) },
+    });
+    await page.goto(startUrl, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+    await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+
+    const results = [];
+    for (const step of steps) {
+      const beforeUrl = page.url();
+      const locator = await findHandoffTarget(page, step);
+      if (!locator) {
+        results.push({
+          label: step.label || step.name || step.selector || "handoff_step",
+          status: "failed",
+          reason: "click_target_not_visible",
+          before_url: beforeUrl,
+          expected_url: step.expected_url || step.expectedUrl || null,
+        });
+        continue;
+      }
+
+      const targetMeta = await elementMeta(locator, step.selector || step.name || step.text || "").catch(() => ({}));
+      await Promise.all([
+        page.waitForLoadState("domcontentloaded", { timeout: timeoutMs }).catch(() => {}),
+        locator.click({ timeout: 5000 }),
+      ]);
+      await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+      const afterUrl = page.url();
+      const expectedUrl = step.expected_url || step.expectedUrl || "";
+      results.push({
+        label: step.label || step.name || step.selector || "handoff_step",
+        status: expectedUrl ? (exactUrl(afterUrl, expectedUrl) ? "passed" : "failed") : "passed",
+        before_url: beforeUrl,
+        after_url: afterUrl,
+        expected_url: expectedUrl || null,
+        target: targetMeta,
+      });
+    }
+
+    return {
+      enabled: true,
+      status: results.every((result) => result.status === "passed") ? "passed" : "failed",
+      start_url: startUrl,
+      final_url: page.url(),
+      steps: results,
+    };
+  } catch (error) {
+    return {
+      enabled: true,
+      status: "failed",
+      start_url: startUrl,
+      error: error.message || String(error),
+      steps: [],
+    };
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+  }
+}

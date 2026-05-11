@@ -11,8 +11,31 @@
     "kind": "pwa",
     "url": "https://finchisacinch.com/?source=fir&install=1",
     "install_contract": {
-      "app_runtime_url": "https://finchisacinch.com/app.html?source=pwa",
-      "expected_start_url": "https://finchisacinch.com/app.html?source=pwa"
+      "app_runtime_url": "https://finchisacinch.com/app?source=pwa",
+      "expected_start_url": "https://finchisacinch.com/app?source=pwa"
+    },
+    "url_contract": {
+      "allowed_human_links": [
+        "https://circlethepeople.com/"
+      ]
+    },
+    "handoff_contract": {
+      "enabled": true,
+      "start_url": "https://circlethepeople.com/",
+      "steps": [
+        {
+          "label": "circle-home-to-finch-page",
+          "role": "link",
+          "name": "Open Finch page",
+          "expected_url": "https://circlethepeople.com/finch/"
+        },
+        {
+          "label": "circle-finch-page-to-install-shell",
+          "role": "link",
+          "name": "View Finch",
+          "expected_url": "https://finchisacinch.com/"
+        }
+      ]
     }
   },
   "modalChecker": {

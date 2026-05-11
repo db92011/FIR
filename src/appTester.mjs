@@ -1,4 +1,4 @@
-import { runInstallClickProbe } from "./clickProbe.mjs";
+import { runInstallClickProbe, runUrlHandoffProbe } from "./clickProbe.mjs";
 
 function text(value, fallback = "") {
   const normalized = String(value ?? "").trim();
@@ -82,6 +82,24 @@ function findScriptUrls(html = "", baseUrl = "") {
   return [...new Set(urls)];
 }
 
+function findHumanLinkUrls(html = "", baseUrl = "") {
+  const urls = [];
+  const matches = html.matchAll(/<a\b[^>]*\bhref=["']([^"']+)["'][^>]*>/gi);
+  for (const match of matches) {
+    const raw = String(match[1] || "").trim();
+    if (!raw || raw.startsWith("#")) continue;
+    const absolute = absoluteUrl(raw, baseUrl);
+    if (!absolute) continue;
+    try {
+      const parsed = new URL(absolute);
+      const base = new URL(baseUrl);
+      if (parsed.origin === base.origin && parsed.pathname === base.pathname && parsed.hash) continue;
+    } catch {}
+    urls.push(absolute);
+  }
+  return [...new Set(urls)];
+}
+
 function hasAnyPattern(value = "", patterns = []) {
   return patterns.some((pattern) => {
     if (pattern instanceof RegExp) return pattern.test(value);
@@ -96,6 +114,15 @@ function sameUrlOrPath(actual = "", expected = "") {
     const expectedUrl = new URL(expected);
     if (actualUrl.href === expectedUrl.href) return true;
     return actualUrl.origin === expectedUrl.origin && actualUrl.pathname.replace(/\/$/, "") === expectedUrl.pathname.replace(/\/$/, "");
+  } catch {
+    return actual === expected;
+  }
+}
+
+function exactUrl(actual = "", expected = "") {
+  if (!actual || !expected) return false;
+  try {
+    return new URL(actual).href === new URL(expected).href;
   } catch {
     return actual === expected;
   }
@@ -242,6 +269,12 @@ function buildIntegrityStack({ checks, requiredFailures, recommendedFailures, co
         purpose: "real browser visibility and click outcome classification for the install action",
       },
       {
+        id: "url_exactness",
+        owned_by: "FIR AIR + Playwright",
+        current_signal: scoreChecks(checks.url_exactness || []),
+        purpose: "exact URL handoff from Circle to product shell and exact installed app start URL",
+      },
+      {
         id: "cleanup_integrity",
         owned_by: "FIR AIR",
         current_signal: scoreChecks(checks.cleanup || []),
@@ -366,6 +399,8 @@ export async function runAppTester(config = {}) {
   const installContract = config.install_contract || config.installContract || {};
   const cleanupContract = config.cleanup_contract || config.cleanupContract || {};
   const clickProbeContract = config.click_probe || config.clickProbe || {};
+  const urlContract = config.url_contract || config.urlContract || {};
+  const handoffContract = config.handoff_contract || config.handoffContract || {};
   const expectedStartUrl = absoluteUrl(
     installContract.expected_start_url || installContract.expectedStartUrl || installContract.app_runtime_url || installContract.appRuntimeUrl || "",
     finalUrl
@@ -395,13 +430,19 @@ export async function runAppTester(config = {}) {
   );
   const desktopIconStartsApp = Boolean(startUrl) &&
     !sameUrlOrPath(startUrl, finalUrl) &&
-    (!expectedStartUrl || sameUrlOrPath(startUrl, expectedStartUrl));
+    (!expectedStartUrl || exactUrl(startUrl, expectedStartUrl));
   const clickProbe = await runInstallClickProbe({
     url: absoluteUrl(clickProbeContract.url || clickProbeContract.click_url || clickProbeContract.clickUrl || defaultClickProbeUrl(finalUrl), finalUrl),
     expectedStartUrl,
     appRuntimeUrl,
     config: clickProbeContract,
   });
+  const handoffProbe = await runUrlHandoffProbe(handoffContract);
+  const humanLinks = findHumanLinkUrls(htmlResult.body, finalUrl);
+  const allowedHumanLinks = asArray(urlContract.allowed_human_links || urlContract.allowedHumanLinks).map((item) => absoluteUrl(item, finalUrl));
+  const unexpectedHumanLinks = allowedHumanLinks.length
+    ? humanLinks.filter((item) => !allowedHumanLinks.some((allowed) => exactUrl(item, allowed)))
+    : [];
   const installShellChecks = [
     check(
       "install_shell_marketing_entry",
@@ -497,6 +538,42 @@ export async function runAppTester(config = {}) {
       { click_probe: clickProbe }
     ),
   ];
+  const urlExactnessChecks = [
+    check(
+      "declared_start_url_exact",
+      "Manifest start_url exactly matches the expected installed app URL.",
+      !expectedStartUrl || exactUrl(startUrl, expectedStartUrl),
+      "high",
+      `declared=${startUrl || "missing"}; expected=${expectedStartUrl || "not configured"}`
+    ),
+    check(
+      "resolved_start_url_exact",
+      "Manifest start_url resolves to the expected installed app URL without drifting to another URL.",
+      !expectedStartUrl || exactUrl(startResult?.url || "", expectedStartUrl),
+      "high",
+      `resolved=${startResult?.url || "missing"}; expected=${expectedStartUrl || "not configured"}`
+    ),
+    check(
+      "human_links_exact",
+      "The install shell exposes only the allowed human links.",
+      unexpectedHumanLinks.length === 0,
+      "high",
+      unexpectedHumanLinks.length
+        ? `Unexpected links: ${unexpectedHumanLinks.join(", ")}`
+        : `Allowed links only: ${humanLinks.join(", ") || "none"}`,
+      { human_links: humanLinks, allowed_human_links: allowedHumanLinks, unexpected_human_links: unexpectedHumanLinks }
+    ),
+    ...(handoffProbe.enabled === false ? [] : [
+      check(
+        "cross_surface_handoff_urls_exact",
+        "Circle-to-product handoff lands on the exact configured URLs.",
+        handoffProbe.status === "passed",
+        "high",
+        handoffProbe.steps.map((step) => `${step.label}:${step.after_url || step.reason}->${step.expected_url || "any"}`).join(" | "),
+        { handoff_probe: handoffProbe }
+      ),
+    ]),
+  ];
   const manifestChecks = [
     check("manifest_link", "HTML links to a web app manifest.", Boolean(manifestUrl), "high", manifestUrl || "No manifest link found."),
     check("manifest_fetch", "Manifest is fetchable and valid JSON.", Boolean(manifest), "high", manifestResult ? (manifestResult.error || `HTTP ${manifestResult.status}`) : "No manifest fetched."),
@@ -554,6 +631,7 @@ export async function runAppTester(config = {}) {
   const checks = {
     install_shell: installShellChecks,
     click_probe: clickProbeChecks,
+    url_exactness: urlExactnessChecks,
     cleanup: cleanupChecks,
     manifest: manifestChecks,
     service_worker: serviceWorkerChecks,
@@ -566,12 +644,13 @@ export async function runAppTester(config = {}) {
   const requiredFailures = allChecks.filter((item) => !item.pass && item.severity === "high");
   const recommendedFailures = allChecks.filter((item) => !item.pass && item.severity !== "high");
   const score = Number((
-    scoreChecks(installShellChecks) * 0.18 +
-    scoreChecks(clickProbeChecks) * 0.18 +
-    scoreChecks(cleanupChecks) * 0.1 +
-    scoreChecks(manifestChecks) * 0.18 +
-    scoreChecks(serviceWorkerChecks) * 0.14 +
-    scoreChecks(securityChecks) * 0.12 +
+    scoreChecks(installShellChecks) * 0.15 +
+    scoreChecks(clickProbeChecks) * 0.15 +
+    scoreChecks(urlExactnessChecks) * 0.15 +
+    scoreChecks(cleanupChecks) * 0.09 +
+    scoreChecks(manifestChecks) * 0.17 +
+    scoreChecks(serviceWorkerChecks) * 0.12 +
+    scoreChecks(securityChecks) * 0.1 +
     scoreChecks(appExperienceChecks) * 0.04 +
     scoreChecks(platformChecks) * 0.03 +
     scoreChecks(socialMetadataChecks) * 0.03
@@ -620,8 +699,11 @@ export async function runAppTester(config = {}) {
         "After install routing changes, old install/download links and button-maze remnants must be removed from the inspected marketing shell.",
       click_rule:
         "A real browser must be able to see and click the install action, and AIR must classify whether it opened the app, showed install guidance, triggered PWA install, or downloaded a file.",
+      url_rule:
+        "Circle-to-product handoffs and installed app start URLs must match their configured URLs exactly.",
     },
     click_probe: clickProbe,
+    handoff_probe: handoffProbe,
     checks,
     findings: [...requiredFailures, ...recommendedFailures],
   };

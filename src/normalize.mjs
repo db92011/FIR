@@ -331,6 +331,7 @@ export function normalizeAppTester(report) {
     if (id.includes("service_worker") || id.includes("offline")) return "service_worker";
     if (id.includes("install_shell") || id.includes("desktop_icon")) return "install_integrity";
     if (id.includes("install_click")) return "install_click";
+    if (id.includes("start_url_exact") || id.includes("human_links_exact") || id.includes("handoff_urls_exact")) return "url_exactness";
     if (id.includes("legacy_install") || id.includes("legacy_route") || id.includes("cleanup")) return "install_cleanup";
     if (id.includes("manifest") || id.includes("icon")) return "manifest";
     if (id.includes("https") || id.includes("mixed")) return "security";
