@@ -107,6 +107,33 @@ function pathLooksLegacyInstall(url = "") {
   }
 }
 
+function legacyRouteReferences(source = "", baseUrl = "", allowedPatterns = []) {
+  const candidates = [];
+  const attrMatches = source.matchAll(/\b(?:href|src|action|data-href|data-url)=["']([^"']+)["']/gi);
+  for (const match of attrMatches) candidates.push(match[1]);
+  const quotedMatches = source.matchAll(/["'`]((?:https?:\/\/|\/|\.\.?\/)[^"'`\s<>]+)["'`]/gi);
+  for (const match of quotedMatches) candidates.push(match[1]);
+
+  const allowed = allowedPatterns
+    .map((pattern) => {
+      try {
+        return pattern instanceof RegExp ? pattern : new RegExp(String(pattern), "i");
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
+
+  const legacy = [];
+  for (const candidate of candidates) {
+    const url = absoluteUrl(String(candidate).replaceAll("&amp;", "&"), baseUrl);
+    if (!url || !pathLooksLegacyInstall(url)) continue;
+    if (allowed.some((pattern) => pattern.test(url))) continue;
+    legacy.push(url);
+  }
+  return [...new Set(legacy)].slice(0, 25);
+}
+
 function iconSizeSet(manifest = {}) {
   const sizes = new Set();
   for (const icon of asArray(manifest.icons)) {
@@ -192,6 +219,12 @@ function buildIntegrityStack({ checks, requiredFailures, recommendedFailures, co
         owned_by: "FIR AIR",
         current_signal: scoreChecks(checks.install_shell || []),
         purpose: "marketing-page install action, native prompt/manual install fallback, and installed icon start URL",
+      },
+      {
+        id: "cleanup_integrity",
+        owned_by: "FIR AIR",
+        current_signal: scoreChecks(checks.cleanup || []),
+        purpose: "old install/download surfaces, stale CTA paths, and button-maze remnants are removed or explicitly allowed",
       },
       {
         id: "pwa_compliance",
@@ -310,6 +343,7 @@ export async function runAppTester(config = {}) {
 
   const mixed = mixedContentHints(htmlResult.body);
   const installContract = config.install_contract || config.installContract || {};
+  const cleanupContract = config.cleanup_contract || config.cleanupContract || {};
   const expectedStartUrl = absoluteUrl(
     installContract.expected_start_url || installContract.expectedStartUrl || installContract.app_runtime_url || installContract.appRuntimeUrl || "",
     finalUrl
@@ -332,6 +366,11 @@ export async function runAppTester(config = {}) {
   const hasInstallAction = hasAnyPattern(combinedSource, installActionPatterns);
   const hasNativePromptHandler = /beforeinstallprompt/i.test(combinedSource);
   const hasManualInstallFallback = hasAnyPattern(combinedSource, manualInstallPatterns);
+  const legacyReferences = legacyRouteReferences(
+    combinedSource,
+    finalUrl,
+    asArray(cleanupContract.allowed_legacy_route_patterns || cleanupContract.allowedLegacyRoutePatterns)
+  );
   const desktopIconStartsApp = Boolean(startUrl) &&
     !sameUrlOrPath(startUrl, finalUrl) &&
     (!expectedStartUrl || sameUrlOrPath(startUrl, expectedStartUrl));
@@ -370,6 +409,18 @@ export async function runAppTester(config = {}) {
       scriptResults.length === 0 || scriptResults.some((result) => result.ok),
       "medium",
       scriptResults.map((result) => `${result.url}:${result.status || 0}`).join(", ") || "No external scripts."
+    ),
+  ];
+  const cleanupChecks = [
+    check(
+      "legacy_install_routes_removed",
+      "AIR cleanup removes old install/download links from the marketing shell and inspected scripts.",
+      legacyReferences.length === 0,
+      "high",
+      legacyReferences.length
+        ? `Legacy route references: ${legacyReferences.join(", ")}`
+        : "No legacy install/download routes referenced.",
+      { legacy_references: legacyReferences }
     ),
   ];
   const manifestChecks = [
@@ -428,6 +479,7 @@ export async function runAppTester(config = {}) {
   ];
   const checks = {
     install_shell: installShellChecks,
+    cleanup: cleanupChecks,
     manifest: manifestChecks,
     service_worker: serviceWorkerChecks,
     security: securityChecks,
@@ -439,13 +491,14 @@ export async function runAppTester(config = {}) {
   const requiredFailures = allChecks.filter((item) => !item.pass && item.severity === "high");
   const recommendedFailures = allChecks.filter((item) => !item.pass && item.severity !== "high");
   const score = Number((
-    scoreChecks(installShellChecks) * 0.25 +
-    scoreChecks(manifestChecks) * 0.22 +
-    scoreChecks(serviceWorkerChecks) * 0.18 +
-    scoreChecks(securityChecks) * 0.15 +
-    scoreChecks(appExperienceChecks) * 0.08 +
-    scoreChecks(platformChecks) * 0.07 +
-    scoreChecks(socialMetadataChecks) * 0.05
+    scoreChecks(installShellChecks) * 0.22 +
+    scoreChecks(cleanupChecks) * 0.13 +
+    scoreChecks(manifestChecks) * 0.2 +
+    scoreChecks(serviceWorkerChecks) * 0.16 +
+    scoreChecks(securityChecks) * 0.14 +
+    scoreChecks(appExperienceChecks) * 0.06 +
+    scoreChecks(platformChecks) * 0.05 +
+    scoreChecks(socialMetadataChecks) * 0.04
   ).toFixed(3));
   const integrityStack = buildIntegrityStack({ checks, requiredFailures, recommendedFailures, config });
 
@@ -487,6 +540,8 @@ export async function runAppTester(config = {}) {
       installed_icon_start_url: startUrl || null,
       safety_rule:
         "The marketing page must install the PWA or show platform install steps; the installed icon must open the app runtime.",
+      cleanup_rule:
+        "After install routing changes, old install/download links and button-maze remnants must be removed from the inspected marketing shell.",
     },
     checks,
     findings: [...requiredFailures, ...recommendedFailures],

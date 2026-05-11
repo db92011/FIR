@@ -130,6 +130,7 @@ Voltmeter nerve-walk specs stimulate runtime nerves and assert that inputs reach
 App Tester is the FIR lane for actual apps and PWAs. Do not enable it for ordinary web interfaces that only need ScreenGenie and Voltmeter coverage. It follows a PWABuilder-style report-card model:
 
 - AIR install integrity: marketing-page installer, install action, platform fallback guidance, and installed icon start URL
+- AIR cleanup integrity: stale `/install` and `/download` links removed from the marketing shell after route changes
 - app preview: name, description, start URL, scope, display mode, theme color, icon posture
 - manifest readiness: manifest link, valid JSON, name, start URL, app display mode, 192px and 512px icons
 - service worker readiness: registration hints, fetchable worker, offline/cache/fetch behavior hints
@@ -142,6 +143,7 @@ The full App Tester stack contract is:
 
 - `Functional`: Playwright flow packs plus FIR journeys
 - `AIR install integrity`: marketing shell install action and installed-icon runtime proof
+- `AIR cleanup integrity`: old install/download pages, CTA paths, and button-maze remnants removed or explicitly allowed as redirect shims
 - `PWA compliance`: FIR App Tester plus Lighthouse/PWABuilder-style rules
 - `Platform`: iOS/WebKit and Android/Chromium posture
 - `Visual`: ScreenGenie now, BackstopJS/Percy-style regression later

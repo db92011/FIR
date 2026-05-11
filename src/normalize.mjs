@@ -330,6 +330,7 @@ export function normalizeAppTester(report) {
     const id = String(finding.id || "");
     if (id.includes("service_worker") || id.includes("offline")) return "service_worker";
     if (id.includes("install_shell") || id.includes("desktop_icon")) return "install_integrity";
+    if (id.includes("legacy_install") || id.includes("legacy_route") || id.includes("cleanup")) return "install_cleanup";
     if (id.includes("manifest") || id.includes("icon")) return "manifest";
     if (id.includes("https") || id.includes("mixed")) return "security";
     if (id.includes("og_") || id.includes("twitter")) return "social_metadata";
