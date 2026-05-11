@@ -1,4 +1,4 @@
-import { runInstallClickProbe, runUrlHandoffProbe } from "./clickProbe.mjs";
+import { runInstallClickProbe, runRuntimeRenderProbe, runUrlHandoffProbe } from "./clickProbe.mjs";
 
 function text(value, fallback = "") {
   const normalized = String(value ?? "").trim();
@@ -280,6 +280,12 @@ function buildIntegrityStack({ checks, requiredFailures, recommendedFailures, co
         purpose: "real browser visibility and click outcome classification for the install action",
       },
       {
+        id: "installed_runtime_integrity",
+        owned_by: "FIR AIR + Playwright",
+        current_signal: scoreChecks(checks.runtime_render || []),
+        purpose: "actual installed runtime URL renders product UI and does not blank from asset or JavaScript failures",
+      },
+      {
         id: "url_exactness",
         owned_by: "FIR AIR + Playwright",
         current_signal: scoreChecks(checks.url_exactness || []),
@@ -410,6 +416,7 @@ export async function runAppTester(config = {}) {
   const installContract = config.install_contract || config.installContract || {};
   const cleanupContract = config.cleanup_contract || config.cleanupContract || {};
   const clickProbeContract = config.click_probe || config.clickProbe || {};
+  const runtimeRenderContract = config.runtime_render_probe || config.runtimeRenderProbe || {};
   const urlContract = config.url_contract || config.urlContract || {};
   const handoffContract = config.handoff_contract || config.handoffContract || {};
   const forbidStandaloneEntryRedirect =
@@ -451,6 +458,10 @@ export async function runAppTester(config = {}) {
     expectedStartUrl,
     appRuntimeUrl,
     config: clickProbeContract,
+  });
+  const runtimeRenderProbe = await runRuntimeRenderProbe({
+    url: expectedStartUrl || appRuntimeUrl || startUrl,
+    config: runtimeRenderContract,
   });
   const handoffProbe = await runUrlHandoffProbe(handoffContract);
   const humanLinks = findHumanLinkUrls(htmlResult.body, finalUrl);
@@ -564,6 +575,28 @@ export async function runAppTester(config = {}) {
       { click_probe: clickProbe }
     ),
   ];
+  const runtimeRenderChecks = runtimeRenderProbe.enabled === false ? [] : [
+    check(
+      "installed_runtime_rendered",
+      "The installed app runtime renders visible product UI.",
+      runtimeRenderProbe.rendered === true,
+      "high",
+      runtimeRenderProbe.rendered === true
+        ? `Rendered ${runtimeRenderProbe.body_text_length || 0} characters at ${runtimeRenderProbe.final_url || runtimeRenderProbe.url}.`
+        : runtimeRenderProbe.error || `Blank or empty runtime at ${runtimeRenderProbe.final_url || runtimeRenderProbe.url}.`,
+      { runtime_render_probe: runtimeRenderProbe }
+    ),
+    check(
+      "installed_runtime_no_blocking_errors",
+      "The installed app runtime has no blocking script/style errors.",
+      runtimeRenderProbe.status === "passed",
+      "high",
+      runtimeRenderProbe.blocking_errors?.length
+        ? runtimeRenderProbe.blocking_errors.map((entry) => entry.text).join(" | ")
+        : runtimeRenderProbe.status === "passed" ? "No blocking runtime errors." : runtimeRenderProbe.error || "Runtime render probe failed.",
+      { runtime_render_probe: runtimeRenderProbe }
+    ),
+  ];
   const urlExactnessChecks = [
     check(
       "declared_start_url_exact",
@@ -657,6 +690,7 @@ export async function runAppTester(config = {}) {
   const checks = {
     install_shell: installShellChecks,
     click_probe: clickProbeChecks,
+    runtime_render: runtimeRenderChecks,
     url_exactness: urlExactnessChecks,
     cleanup: cleanupChecks,
     manifest: manifestChecks,
@@ -672,14 +706,15 @@ export async function runAppTester(config = {}) {
   const score = Number((
     scoreChecks(installShellChecks) * 0.15 +
     scoreChecks(clickProbeChecks) * 0.15 +
+    scoreChecks(runtimeRenderChecks) * 0.12 +
     scoreChecks(urlExactnessChecks) * 0.15 +
     scoreChecks(cleanupChecks) * 0.09 +
-    scoreChecks(manifestChecks) * 0.17 +
-    scoreChecks(serviceWorkerChecks) * 0.12 +
-    scoreChecks(securityChecks) * 0.1 +
+    scoreChecks(manifestChecks) * 0.14 +
+    scoreChecks(serviceWorkerChecks) * 0.1 +
+    scoreChecks(securityChecks) * 0.09 +
     scoreChecks(appExperienceChecks) * 0.04 +
     scoreChecks(platformChecks) * 0.03 +
-    scoreChecks(socialMetadataChecks) * 0.03
+    scoreChecks(socialMetadataChecks) * 0.02
   ).toFixed(3));
   const integrityStack = buildIntegrityStack({ checks, requiredFailures, recommendedFailures, config });
 
@@ -725,10 +760,13 @@ export async function runAppTester(config = {}) {
         "After install routing changes, old install/download links and button-maze remnants must be removed from the inspected marketing shell.",
       click_rule:
         "A real browser must be able to see and click the install action, and AIR must classify whether it opened the app, showed install guidance, triggered PWA install, or downloaded a file.",
+      runtime_rule:
+        "The installed app runtime URL must render visible product UI and must not blank because scripts or styles are being served incorrectly.",
       url_rule:
         "Circle-to-product handoffs and installed app start URLs must match their configured URLs exactly.",
     },
     click_probe: clickProbe,
+    runtime_render_probe: runtimeRenderProbe,
     handoff_probe: handoffProbe,
     checks,
     findings: [...requiredFailures, ...recommendedFailures],

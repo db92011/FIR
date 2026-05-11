@@ -424,3 +424,83 @@ export async function runUrlHandoffProbe(config = {}) {
     if (browser) await browser.close().catch(() => {});
   }
 }
+
+export async function runRuntimeRenderProbe({
+  url,
+  config = {},
+} = {}) {
+  if (config.enabled === false || !url) {
+    return {
+      enabled: false,
+      status: "skipped",
+      reason: url ? "Runtime render probe disabled for this target." : "No runtime URL configured.",
+    };
+  }
+
+  const timeoutMs = Number(config.timeout_ms || config.timeoutMs || 15000);
+  const settleMs = Number(config.settle_ms || config.settleMs || 2500);
+  const minBodyTextLength = Number(config.min_body_text_length || config.minBodyTextLength || 20);
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: config.headed === true ? false : true });
+    const page = await browser.newPage({
+      viewport: { width: Number(config.width || 1280), height: Number(config.height || 900) },
+    });
+    const logs = [];
+    const failedRequests = [];
+    page.on("console", (message) => {
+      logs.push({ type: message.type(), text: message.text() });
+    });
+    page.on("pageerror", (error) => {
+      logs.push({ type: "pageerror", text: error.message || String(error) });
+    });
+    page.on("requestfailed", (request) => {
+      failedRequests.push({
+        url: request.url(),
+        failure: request.failure()?.errorText || "request failed",
+      });
+    });
+
+    const response = await page.goto(url, { waitUntil: "domcontentloaded", timeout: timeoutMs });
+    await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(settleMs);
+
+    const bodyText = await bodyTextProbe(page);
+    const rootHtmlLength = await page.locator("#root").evaluate((element) => element.innerHTML.length).catch(() => null);
+    const title = await page.title().catch(() => "");
+    const blockingErrors = logs.filter((entry) =>
+      entry.type === "pageerror" ||
+      /mime type|failed to load module script|refused to apply style|uncaught|referenceerror|syntaxerror|typeerror/i.test(entry.text)
+    );
+    const rendered = bodyText.trim().length >= minBodyTextLength || Number(rootHtmlLength || 0) > 50;
+
+    return {
+      enabled: true,
+      status: response?.ok() && rendered && blockingErrors.length === 0 ? "passed" : "failed",
+      url,
+      final_url: page.url(),
+      response_status: response?.status() || null,
+      title,
+      rendered,
+      body_text_length: bodyText.trim().length,
+      body_text_sample: bodyText.trim().slice(0, 500),
+      root_html_length: rootHtmlLength,
+      blocking_errors: blockingErrors,
+      logs: logs.slice(0, 25),
+      failed_requests: failedRequests.slice(0, 25),
+    };
+  } catch (error) {
+    return {
+      enabled: true,
+      status: "failed",
+      url,
+      error: error.message || String(error),
+    };
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+  }
+}
+
+async function bodyTextProbe(page) {
+  return page.locator("body").innerText({ timeout: 1500 }).catch(() => "");
+}
