@@ -9,7 +9,7 @@
   "appTester": {
     "enabled": true,
     "kind": "pwa",
-    "url": "https://finchisacinch.com/?source=fir&install=1",
+    "url": "https://finchisacinch.com/",
     "install_contract": {
       "app_runtime_url": "https://finchisacinch.com/app?source=pwa",
       "expected_start_url": "https://finchisacinch.com/app?source=pwa"
