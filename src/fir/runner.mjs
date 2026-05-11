@@ -72,14 +72,16 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
   if (airMode) {
     const runId = `air_${target.id}_${timestamp}`;
     const appTester = await loadAppTesterResult(resolveAirConfig(target));
-    const failures = normalizeAppTester(appTester);
-    const remediationPlan = buildRemediationPlan(failures);
+    const findings = normalizeAppTester(appTester);
+    const blockingFailures = findings.filter((failure) => ["critical", "high"].includes(String(failure.severity || "").toLowerCase()));
+    const recommendationFailures = findings.filter((failure) => !["critical", "high"].includes(String(failure.severity || "").toLowerCase()));
+    const remediationPlan = buildRemediationPlan(blockingFailures);
     const repairPackets = repairPacketsFromFailures(remediationPlan.active_failures);
     const correction = runCorrectionLoop({
       rootDir,
       runId,
       target,
-      failures,
+      failures: blockingFailures,
       remediationPlan,
       args,
     });
@@ -96,11 +98,13 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
       expected_app_runtime_url: appTester?.application_integrity_run?.expected_app_runtime_url || null,
       preflight_status: "not_required_for_air",
       preflight_observed_status: preflight.overall,
-      correction_state: correction?.state || (failures.length === 0 ? "corrected" : "repair_needed"),
-      should_continue: failures.length > 0,
-      next_action: failures.length === 0 ? "none" : "repair_air_install_integrity",
-      failure_total: failures.length,
-      success: failures.length === 0,
+      correction_state: correction?.state || (blockingFailures.length === 0 ? "corrected" : "repair_needed"),
+      should_continue: blockingFailures.length > 0,
+      next_action: blockingFailures.length > 0 ? "repair_air_install_integrity" : (recommendationFailures.length > 0 ? "review_air_recommendations" : "none"),
+      failure_total: findings.length,
+      blocking_failure_total: blockingFailures.length,
+      recommendation_total: recommendationFailures.length,
+      success: blockingFailures.length === 0,
     });
     writeJson(path.join(artifactDir, "pointer-report.json"), {});
     writeJson(path.join(artifactDir, "screen-report.json"), {});
@@ -108,7 +112,7 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
     writeJson(path.join(artifactDir, "voltmeter-report.json"), {});
     writeJson(path.join(artifactDir, "clog-report.json"), {});
     writeJson(path.join(artifactDir, "hammer-report.json"), {});
-    writeJson(path.join(artifactDir, "aggregated-failures.json"), failures);
+    writeJson(path.join(artifactDir, "aggregated-failures.json"), findings);
     writeJson(path.join(artifactDir, "repair-packets.json"), repairPackets);
     writeJson(path.join(artifactDir, "correction-history.json"), correction?.history || []);
     writeJson(path.join(artifactDir, "final-state.json"), finalState);
@@ -122,7 +126,7 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
       clog: {},
       journeys: journeyPlan,
       hammer: { plan: hammerPlan, report: null },
-      failures,
+      failures: findings,
       repairPackets,
       correction,
       finalState,

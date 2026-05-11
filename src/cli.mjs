@@ -107,6 +107,8 @@ async function main() {
     console.log(`AIR: ${result.finalState.air_status || "unknown"}`);
     console.log(`Installed icon start URL: ${result.finalState.installed_icon_start_url || "unknown"}`);
     console.log(`Expected app runtime URL: ${result.finalState.expected_app_runtime_url || "unknown"}`);
+    console.log(`AIR blocking failures: ${result.finalState.blocking_failure_total ?? "unknown"}`);
+    console.log(`AIR recommendations: ${result.finalState.recommendation_total ?? "unknown"}`);
   }
   console.log(`Journeys: ${result.journeys?.selected_journey_count || 0} (${(result.journeys?.selected_journey_ids || []).join(", ") || "none"})`);
   console.log(`Hammer: ${result.hammer?.plan?.status || result.finalState.hammer_status || "unknown"} (${(result.hammer?.plan?.selected_route_ids || result.finalState.hammer_routes || []).join(", ") || "none"})`);
@@ -114,7 +116,11 @@ async function main() {
     ? `${result.finalState.preflight_status || "not_required_for_air"} (observed: ${result.finalState.preflight_observed_status || result.preflight?.overall || "unknown"})`
     : result.preflight?.overall || result.finalState.preflight_status || "unknown";
   console.log(`Preflight: ${preflightLabel}`);
-  if (result.correction) {
+  if (result.finalState.mode === "air") {
+    console.log(`Correction state: ${result.finalState.correction_state || "not_started"}`);
+    console.log(`Should continue: ${result.finalState.should_continue ? "yes" : "no"}`);
+    console.log(`Next action: ${result.finalState.next_action || "none"}`);
+  } else if (result.correction) {
     console.log(`Correction state: ${result.correction.state}`);
     console.log(`Should continue: ${result.correction.should_continue ? "yes" : "no"}`);
     console.log(`Next action: ${result.correction.next_action}`);
@@ -129,7 +135,8 @@ async function main() {
       `Hammer requests: ${result.hammer.report.summary?.total_requests || 0}, errors: ${result.hammer.report.summary?.error_count || 0}, p95: ${result.hammer.report.summary?.p95_ms || 0}ms`,
     );
   }
-  console.log(`Failures: ${result.failures.length}`);
+  const findingLabel = result.finalState.mode === "air" ? "AIR findings" : "Failures";
+  console.log(`${findingLabel}: ${result.failures.length}`);
   for (const failure of result.failures.slice(0, 12)) {
     console.log(
       `- [${String(failure.severity).toUpperCase()}] ${failure.source}/${failure.lane}: ${failure.observed}`.trim(),

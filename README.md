@@ -189,7 +189,7 @@ For install work, the target should point App Tester at the app marketing shell,
 
 It also auto-runs when the target is declared as `web-pwa`, or when Pointer/target surface contracts mark the flow/tag as `app-surface`, `public-app`, or `pwa`. This keeps the tongue in Pointer: Pointer identifies what kind of surface FIR is touching, while App Tester performs the specialized PWA/package-readiness exam.
 
-High-severity App Tester findings block the app-readiness lane. Medium and low findings are recommendations that improve native app feel and packaging confidence.
+High-severity App Tester findings block the app-readiness lane. Medium and low findings stay visible as AIR recommendations so consistency issues are not hidden, but they do not turn a clean install path into an install failure.
 
 The included `workspace-demo` target is a safe starter target that uses:
 
