@@ -1,0 +1,29 @@
+{
+  "id": "jrnl-live",
+  "type": "web-pwa",
+  "entry": "https://ctp-jrnl.pages.dev/",
+  "flows": [
+    "install-surface",
+    "app-surface",
+    "lucy-runtime"
+  ],
+  "appTester": {
+    "enabled": true,
+    "kind": "pwa",
+    "url": "https://ctp-jrnl.pages.dev/?source=fir&install=1",
+    "install_contract": {
+      "app_runtime_url": "https://ctp-jrnl.pages.dev/home",
+      "expected_start_url": "https://ctp-jrnl.pages.dev/home"
+    }
+  },
+  "pointer": {
+    "enabled": false
+  },
+  "screenGenie": {
+    "enabled": false
+  },
+  "voltmeter": {
+    "enabled": false
+  },
+  "max_attempts": 5
+}

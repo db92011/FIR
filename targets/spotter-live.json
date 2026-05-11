@@ -1,0 +1,29 @@
+{
+  "id": "spotter-live",
+  "type": "web-pwa",
+  "entry": "https://circlethepeople.com/spotter/",
+  "flows": [
+    "marketing",
+    "install-surface",
+    "app-surface"
+  ],
+  "appTester": {
+    "enabled": true,
+    "kind": "pwa",
+    "url": "https://circlethepeople.com/spotter/?source=fir&install=1",
+    "install_contract": {
+      "app_runtime_url": "https://circlethepeople.com/spotter/app/",
+      "expected_start_url": "https://circlethepeople.com/spotter/app/"
+    }
+  },
+  "pointer": {
+    "enabled": false
+  },
+  "screenGenie": {
+    "enabled": false
+  },
+  "voltmeter": {
+    "enabled": false
+  },
+  "max_attempts": 5
+}

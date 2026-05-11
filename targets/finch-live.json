@@ -6,6 +6,32 @@
     "public-app",
     "paywall"
   ],
+  "appTester": {
+    "enabled": true,
+    "kind": "pwa",
+    "url": "https://finchisacinch.com/?source=fir&install=1",
+    "install_contract": {
+      "app_runtime_url": "https://finchisacinch.com/app.html?source=pwa",
+      "expected_start_url": "https://finchisacinch.com/app.html?source=pwa"
+    }
+  },
+  "modalChecker": {
+    "enabled": true,
+    "emulate_standalone": true,
+    "modals": [
+      {
+        "id": "finch-plus-paywall",
+        "open": "#plusBtn",
+        "dialog": "#plusModal .modalCard",
+        "close": "#plusCancelBtn",
+        "expect_scroll_lock": true,
+        "expect_focus_inside": true,
+        "expect_focus_trap": true,
+        "expect_escape_close": true,
+        "expect_focus_return": true
+      }
+    ]
+  },
   "journeys": [],
   "max_attempts": 5,
   "hammer": {

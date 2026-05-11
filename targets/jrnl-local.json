@@ -4,11 +4,21 @@
   "entry": "http://127.0.0.1:4177/home",
   "flows": [
     "home",
+    "install-surface",
     "forum",
     "safety",
     "forum-runtime",
     "lucy-runtime"
   ],
+  "appTester": {
+    "enabled": true,
+    "kind": "pwa",
+    "url": "http://127.0.0.1:4177/?source=fir&install=1",
+    "install_contract": {
+      "app_runtime_url": "http://127.0.0.1:4177/home",
+      "expected_start_url": "http://127.0.0.1:4177/home"
+    }
+  },
   "max_attempts": 5,
   "preflight": {
     "screenGenie": {

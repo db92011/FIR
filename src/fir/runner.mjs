@@ -1,6 +1,6 @@
 import path from "node:path";
-import { loadPointerResult, loadScreenGenieResult, loadVoltmeterResult } from "../adapters.mjs";
-import { buildRemediationPlan, normalizeAll, repairPacketsFromFailures } from "../normalize.mjs";
+import { loadAppTesterResult, loadClogAuditResult, loadPointerResult, loadScreenGenieResult, loadVoltmeterResult } from "../adapters.mjs";
+import { buildRemediationPlan, normalizeAll, normalizeAppTester, repairPacketsFromFailures } from "../normalize.mjs";
 import { cleanObject, ensureDir, nowStamp, writeJson } from "../utils.mjs";
 import { runCorrectionLoop } from "./correctionLoop.mjs";
 import { buildJourneyPlan, renderJourneySummary } from "./journeys.mjs";
@@ -8,10 +8,57 @@ import { buildHammerPlan, renderHammerSummary, runHammer } from "./hammer.mjs";
 import { runPreflight } from "./preflight.mjs";
 import fs from "node:fs";
 
+function declaredAppSurface(target = {}) {
+  const type = String(target.type || "").toLowerCase();
+  const flows = (target.flows || []).map((flow) => String(flow).toLowerCase());
+  const tags = (target.tags || []).map((tag) => String(tag).toLowerCase());
+  const pointerKind = String(
+    target.pointer?.surface_kind ||
+      target.pointer?.surfaceKind ||
+      target.pointer?.surface?.kind ||
+      ""
+  ).toLowerCase();
+  return (
+    type.includes("pwa") ||
+    pointerKind.includes("pwa") ||
+    pointerKind.includes("app") ||
+    flows.some((flow) => ["app-surface", "public-app", "pwa"].includes(flow)) ||
+    tags.some((tag) => ["app-surface", "public-app", "pwa"].includes(tag))
+  );
+}
+
+function resolveAppTesterConfig(target = {}) {
+  const declared = target.appTester || {};
+  if (declared.enabled === false) return declared;
+  if (!declared.enabled && !declaredAppSurface(target)) return declared;
+  return {
+    kind: "pwa",
+    url: target.entry,
+    declared_by: declared.enabled ? "target.appTester" : "pointer_surface_contract",
+    ...declared,
+    enabled: true,
+  };
+}
+
+function resolveAirConfig(target = {}) {
+  const declared = target.appTester || {};
+  const air = target.air || target.applicationIntegrity || target.application_integrity || {};
+  return {
+    kind: "pwa",
+    url: target.entry,
+    declared_by: "air_run",
+    ...resolveAppTesterConfig(target),
+    ...declared,
+    ...air,
+    enabled: true,
+  };
+}
+
 export async function runIntegrity({ rootDir, target, args = {} }) {
   const timestamp = nowStamp();
   const artifactDir = path.join(rootDir, "artifacts", "fir", timestamp);
   ensureDir(artifactDir);
+  const airMode = args.air || args.airOnly;
   const journeyPlan = buildJourneyPlan({ target, args });
   writeJson(path.join(artifactDir, "journey-plan.json"), journeyPlan);
   fs.writeFileSync(path.join(artifactDir, "journey-summary.txt"), renderJourneySummary(journeyPlan), "utf8");
@@ -21,6 +68,66 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
 
   const preflight = await runPreflight({ target });
   writeJson(path.join(artifactDir, "preflight-report.json"), preflight);
+
+  if (airMode) {
+    const runId = `air_${target.id}_${timestamp}`;
+    const appTester = await loadAppTesterResult(resolveAirConfig(target));
+    const failures = normalizeAppTester(appTester);
+    const remediationPlan = buildRemediationPlan(failures);
+    const repairPackets = repairPacketsFromFailures(remediationPlan.active_failures);
+    const correction = runCorrectionLoop({
+      rootDir,
+      runId,
+      target,
+      failures,
+      remediationPlan,
+      args,
+    });
+    const finalState = cleanObject({
+      run_id: runId,
+      mode: "air",
+      target_id: target.id,
+      target_type: target.type || null,
+      entry: target.entry || null,
+      air_status: appTester?.application_integrity_run?.status || appTester?.status || "unknown",
+      app_tester_status: appTester?.status || null,
+      package_readiness: appTester?.package_readiness || null,
+      installed_icon_start_url: appTester?.application_integrity_run?.installed_icon_start_url || null,
+      expected_app_runtime_url: appTester?.application_integrity_run?.expected_app_runtime_url || null,
+      preflight_status: "not_required_for_air",
+      preflight_observed_status: preflight.overall,
+      correction_state: correction?.state || (failures.length === 0 ? "corrected" : "repair_needed"),
+      should_continue: failures.length > 0,
+      next_action: failures.length === 0 ? "none" : "repair_air_install_integrity",
+      failure_total: failures.length,
+      success: failures.length === 0,
+    });
+    writeJson(path.join(artifactDir, "pointer-report.json"), {});
+    writeJson(path.join(artifactDir, "screen-report.json"), {});
+    writeJson(path.join(artifactDir, "app-tester-report.json"), appTester || {});
+    writeJson(path.join(artifactDir, "voltmeter-report.json"), {});
+    writeJson(path.join(artifactDir, "clog-report.json"), {});
+    writeJson(path.join(artifactDir, "hammer-report.json"), {});
+    writeJson(path.join(artifactDir, "aggregated-failures.json"), failures);
+    writeJson(path.join(artifactDir, "repair-packets.json"), repairPackets);
+    writeJson(path.join(artifactDir, "correction-history.json"), correction?.history || []);
+    writeJson(path.join(artifactDir, "final-state.json"), finalState);
+    return {
+      artifactDir,
+      preflight,
+      pointer: {},
+      screen: {},
+      appTester,
+      voltmeter: {},
+      clog: {},
+      journeys: journeyPlan,
+      hammer: { plan: hammerPlan, report: null },
+      failures,
+      repairPackets,
+      correction,
+      finalState,
+    };
+  }
 
   if (args.preflightOnly) {
     const finalState = cleanObject({
@@ -40,7 +147,9 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
     });
     writeJson(path.join(artifactDir, "pointer-report.json"), {});
     writeJson(path.join(artifactDir, "screen-report.json"), {});
+    writeJson(path.join(artifactDir, "app-tester-report.json"), {});
     writeJson(path.join(artifactDir, "voltmeter-report.json"), {});
+    writeJson(path.join(artifactDir, "clog-report.json"), {});
     writeJson(path.join(artifactDir, "hammer-report.json"), {});
     writeJson(path.join(artifactDir, "aggregated-failures.json"), []);
     writeJson(path.join(artifactDir, "repair-packets.json"), []);
@@ -51,7 +160,9 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
       preflight,
       pointer: {},
       screen: {},
+      appTester: {},
       voltmeter: {},
+      clog: {},
       journeys: journeyPlan,
       hammer: { plan: hammerPlan, report: null },
       failures: [],
@@ -81,7 +192,9 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
     });
     writeJson(path.join(artifactDir, "pointer-report.json"), {});
     writeJson(path.join(artifactDir, "screen-report.json"), {});
+    writeJson(path.join(artifactDir, "app-tester-report.json"), {});
     writeJson(path.join(artifactDir, "voltmeter-report.json"), {});
+    writeJson(path.join(artifactDir, "clog-report.json"), {});
     writeJson(path.join(artifactDir, "hammer-report.json"), {});
     writeJson(path.join(artifactDir, "aggregated-failures.json"), []);
     writeJson(path.join(artifactDir, "repair-packets.json"), []);
@@ -92,7 +205,9 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
       preflight,
       pointer: {},
       screen: {},
+      appTester: {},
       voltmeter: {},
+      clog: {},
       journeys: journeyPlan,
       hammer: { plan: hammerPlan, report: null },
       failures: [],
@@ -125,7 +240,9 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
     });
     writeJson(path.join(artifactDir, "pointer-report.json"), {});
     writeJson(path.join(artifactDir, "screen-report.json"), {});
+    writeJson(path.join(artifactDir, "app-tester-report.json"), {});
     writeJson(path.join(artifactDir, "voltmeter-report.json"), {});
+    writeJson(path.join(artifactDir, "clog-report.json"), {});
     writeJson(path.join(artifactDir, "hammer-report.json"), {});
     writeJson(path.join(artifactDir, "aggregated-failures.json"), []);
     writeJson(path.join(artifactDir, "repair-packets.json"), []);
@@ -136,7 +253,9 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
       preflight,
       pointer: {},
       screen: {},
+      appTester: {},
       voltmeter: {},
+      clog: {},
       journeys: journeyPlan,
       hammer: { plan: hammerPlan, report: null },
       failures: [],
@@ -150,7 +269,9 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
     const hammerReport = await runHammer({ plan: hammerPlan });
     writeJson(path.join(artifactDir, "pointer-report.json"), {});
     writeJson(path.join(artifactDir, "screen-report.json"), {});
+    writeJson(path.join(artifactDir, "app-tester-report.json"), {});
     writeJson(path.join(artifactDir, "voltmeter-report.json"), {});
+    writeJson(path.join(artifactDir, "clog-report.json"), {});
     writeJson(path.join(artifactDir, "hammer-report.json"), hammerReport || {});
     fs.writeFileSync(path.join(artifactDir, "hammer-summary.txt"), renderHammerSummary(hammerPlan, hammerReport), "utf8");
 
@@ -182,7 +303,9 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
       preflight,
       pointer: {},
       screen: {},
+      appTester: {},
       voltmeter: {},
+      clog: {},
       journeys: journeyPlan,
       hammer: { plan: hammerPlan, report: hammerReport },
       failures: [],
@@ -194,16 +317,20 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
 
   const pointer = loadPointerResult(target.pointer || {});
   const screen = loadScreenGenieResult(target.screenGenie || {});
+  const appTester = await loadAppTesterResult(resolveAppTesterConfig(target));
   const voltmeter = loadVoltmeterResult(target.voltmeter || {});
+  const clog = loadClogAuditResult(target.clog || {});
   const hammerReport = args.hammer || args.hammerOnly ? await runHammer({ plan: hammerPlan }) : { verdict: "skipped", summary: { total_requests: 0, error_count: 0, mean_ms: 0, p95_ms: 0 }, routes: [] };
 
   writeJson(path.join(artifactDir, "pointer-report.json"), pointer || {});
   writeJson(path.join(artifactDir, "screen-report.json"), screen || {});
+  writeJson(path.join(artifactDir, "app-tester-report.json"), appTester || {});
   writeJson(path.join(artifactDir, "voltmeter-report.json"), voltmeter || {});
+  writeJson(path.join(artifactDir, "clog-report.json"), clog || {});
   writeJson(path.join(artifactDir, "hammer-report.json"), hammerReport || {});
   fs.writeFileSync(path.join(artifactDir, "hammer-summary.txt"), renderHammerSummary(hammerPlan, hammerReport), "utf8");
 
-  const failures = normalizeAll({ pointer, screen, voltmeter });
+  const failures = normalizeAll({ pointer, screen, appTester, voltmeter, clog });
   const remediationPlan = buildRemediationPlan(failures);
   const repairPackets = repairPacketsFromFailures(remediationPlan.active_failures);
   const correction = runCorrectionLoop({
@@ -230,10 +357,15 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
     hammer_error_count: hammerReport.summary?.error_count,
     preflight_status: preflight.overall,
     flow_count: (target.flows || []).length,
+    app_tester_status: appTester?.status,
+    app_tester_score: appTester?.score,
+    app_tester_package_status: appTester?.package_readiness?.status,
     failure_total: failures.length,
     active_source: remediationPlan.active_source,
     active_failure_total: remediationPlan.active_failures.length,
     deferred_failure_total: remediationPlan.deferred_failures.length,
+    clog_issue_total: clog?.summary?.issue_total,
+    clog_workspace_total: clog?.summary?.workspace_total,
     source_summary: remediationPlan.source_summary,
     correction_state: correction.state,
     should_continue: correction.should_continue,
@@ -258,7 +390,9 @@ export async function runIntegrity({ rootDir, target, args = {} }) {
       preflight,
       pointer,
       screen,
+      appTester,
       voltmeter,
+      clog,
     journeys: journeyPlan,
     hammer: { plan: hammerPlan, report: hammerReport },
     failures,

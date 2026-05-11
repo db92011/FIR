@@ -1,7 +1,7 @@
 import path from "node:path";
 import { hashStable } from "./utils.mjs";
 
-export const FIR_SOURCE_ORDER = ["pointer", "screen", "voltmeter"];
+export const FIR_SOURCE_ORDER = ["pointer", "screen", "app_tester", "voltmeter", "clog"];
 
 function makeFailure({
   source,
@@ -266,14 +266,247 @@ export function normalizeVoltmeter(report) {
       );
     }
   }
+  for (const probe of report.nerve_walk?.probes || []) {
+    if (probe.pass === false) {
+      failures.push(
+        makeFailure({
+          source: "voltmeter",
+          lane: "nerve_walk",
+          severity: "high",
+          confidence: 0.9,
+          expected: `${probe.nerve || probe.id} should move from input to verified outcome without jamming.`,
+          observed:
+            probe.error ||
+            `${probe.nerve || probe.id} failed nerve-walk assertions: ${
+              (probe.assertions || []).filter((assertion) => !assertion.pass).map((assertion) => assertion.path).join(", ") || "unknown"
+            }.`,
+          evidence: {
+            probe,
+            nerve_walk_summary: report.nerve_walk?.summary || null,
+          },
+          ownership: {
+            zone: "lucysyn",
+            likely_files: [],
+            suspected_modules: ["voltmeter-nerve-walk", probe.nerve || probe.id],
+          },
+          suggestedStrategy: {
+            type: "repair_nerve_trace",
+            description: "Follow the failed nerve probe from input source through interpretation, routing, memory, and outcome packet creation.",
+            priority: "high",
+          },
+          asset: probe.nerve || probe.id,
+        }),
+      );
+    }
+  }
   if ((report.verdicts?.truth_verdict && report.verdicts.truth_verdict !== "pass") || failures.length === 0 && report.run?.runner_mode) {
     // If verdicts exist but truth failed without explicit failed checks surfacing first, add a summary failure.
   }
   return failures;
 }
 
-export function normalizeAll({ pointer, screen, voltmeter }) {
-  return [...normalizePointer(pointer), ...normalizeScreenGenie(screen), ...normalizeVoltmeter(voltmeter)];
+export function normalizeAppTester(report) {
+  if (!report || report.enabled === false) return [];
+  if (report.status === "skipped") return [];
+  if (!report.checks && !Array.isArray(report.findings)) {
+    return [
+      makeFailure({
+        source: "app_tester",
+        lane: "app_readiness",
+        severity: "high",
+        confidence: 0.91,
+        expected: "App Tester should produce a PWA/app report card when enabled.",
+        observed: "No App Tester checks could be loaded.",
+        suggestedStrategy: {
+          type: "restore_app_tester",
+          description: "Run App Tester for the PWA target or disable appTester for non-app web surfaces.",
+          priority: "high",
+        },
+        asset: report.url || null,
+      }),
+    ];
+  }
+  const laneForFinding = (finding = {}) => {
+    const id = String(finding.id || "");
+    if (id.includes("service_worker") || id.includes("offline")) return "service_worker";
+    if (id.includes("install_shell") || id.includes("desktop_icon")) return "install_integrity";
+    if (id.includes("manifest") || id.includes("icon")) return "manifest";
+    if (id.includes("https") || id.includes("mixed")) return "security";
+    if (id.includes("og_") || id.includes("twitter")) return "social_metadata";
+    if (id.includes("apple") || id.includes("android") || id.includes("theme_color") || id.includes("maskable")) return "platform";
+    if (id.includes("scope") || id.includes("viewport") || id.includes("install_prompt")) return "app_shell";
+    return "app_experience";
+  };
+  return (report.findings || []).map((finding) =>
+    makeFailure({
+      source: "app_tester",
+      lane: laneForFinding(finding),
+      severity: finding.severity || "medium",
+      confidence: finding.severity === "high" ? 0.9 : 0.72,
+      expected: finding.label || `${finding.id} should pass.`,
+      observed: finding.detail || `${finding.id} did not pass.`,
+      evidence: {
+        finding,
+        package_readiness: report.package_readiness || null,
+        app_preview: report.app_preview || null,
+        integrity_stack: report.integrity_stack || null,
+      },
+      ownership: {
+        zone: "app_runtime",
+        likely_files: [],
+        suspected_modules: ["pwa-manifest", "service-worker", "installability", "app-shell"],
+      },
+      suggestedStrategy: {
+        type: "repair_app_readiness",
+        description:
+          finding.severity === "high"
+            ? "Fix the app installability blocker before packaging or treating this as a complete PWA."
+            : "Improve this recommended app-readiness item to increase native app feel.",
+        priority: finding.severity === "high" ? "high" : "medium",
+      },
+      asset: report.url || report.final_url || null,
+    }),
+  );
+}
+
+function countIssueParts(issue = {}) {
+  return {
+    files: Array.isArray(issue.files) ? issue.files.length : 0,
+    dependencies: Array.isArray(issue.dependencies) ? issue.dependencies.length : 0,
+    devDependencies: Array.isArray(issue.devDependencies) ? issue.devDependencies.length : 0,
+    exports: Array.isArray(issue.exports) ? issue.exports.length : 0,
+  };
+}
+
+function summarizeKnipIssue(issue = {}) {
+  const counts = countIssueParts(issue);
+  const parts = [];
+  if (counts.files) parts.push(`${counts.files} unused file marker`);
+  if (counts.dependencies) parts.push(`${counts.dependencies} unused dependency marker`);
+  if (counts.devDependencies) parts.push(`${counts.devDependencies} unused dev dependency marker`);
+  if (counts.exports) parts.push(`${counts.exports} unused export marker`);
+  return parts.length ? parts.join(", ") : "Knip reported a code-health issue.";
+}
+
+function bodyRegistryPosture(issue = {}) {
+  const body = issue.body_registry || null;
+  if (!body) return null;
+  const status = String(body.status || "").trim();
+  const posture = String(body.posture || "").trim();
+  if (status === "live") {
+    return {
+      body,
+      status,
+      posture,
+      lane: "registered_live_entrypoint",
+      severity: "low",
+      confidence: 0.35,
+      description: body.body_part
+        ? `${body.body_part}/${body.organ || "unclassified organ"} is body-registered as live; static analysis may be missing a dynamic runtime edge.`
+        : null,
+    };
+  }
+  const isProtected = ["dormant", "do_not_delete", "needs_wiring", "export_hygiene"].includes(status) ||
+    ["do_not_delete", "needs_wiring", "review_export_only"].includes(posture);
+  return {
+    body,
+    status,
+    posture,
+    lane: status === "export_hygiene" ? "export_hygiene" : isProtected ? "unwired_organ" : "dead_code",
+    severity: status === "cleanup_candidate" ? "low" : isProtected ? "low" : null,
+    confidence: isProtected ? 0.54 : null,
+    description: body.body_part
+      ? `${body.body_part}/${body.organ || "unclassified organ"} is registered as ${status || posture || "classified"}.`
+      : null,
+  };
+}
+
+export function normalizeClogAudit(report) {
+  if (!report?.enabled) return [];
+  const failures = [];
+  for (const workspace of report.workspaces || []) {
+    if (!workspace.ok) {
+      failures.push(
+        makeFailure({
+          source: "clog",
+          lane: "code_health",
+          severity: "medium",
+          confidence: 0.72,
+          expected: "Knip should complete for each configured FIR clog-audit workspace.",
+          observed: workspace.error || workspace.stderr || `Knip failed in ${workspace.id}.`,
+          evidence: {
+            workspace_id: workspace.id,
+            cwd: workspace.cwd,
+            code: workspace.code,
+          },
+          ownership: {
+            zone: "workspace_health",
+            likely_files: [],
+            suspected_modules: ["knip", "clog-audit"],
+          },
+          suggestedStrategy: {
+            type: "repair_knip_configuration",
+            description: "Fix the Knip config or workspace package setup before trusting clog findings.",
+            priority: "medium",
+          },
+          asset: workspace.cwd || workspace.id,
+        }),
+      );
+      continue;
+    }
+    for (const issue of workspace.issues || []) {
+      const counts = countIssueParts(issue);
+      const hasDependency = counts.dependencies > 0 || counts.devDependencies > 0;
+      const hasFile = counts.files > 0;
+      const hasExport = counts.exports > 0;
+      const bodyPosture = bodyRegistryPosture(issue);
+      failures.push(
+        makeFailure({
+          source: "clog",
+          lane: bodyPosture?.lane || (hasDependency ? "dependency_health" : hasFile ? "dead_code" : "export_hygiene"),
+          severity: bodyPosture?.severity || (hasDependency || hasFile ? "medium" : "low"),
+          confidence: bodyPosture?.confidence || (hasDependency ? 0.78 : hasFile ? 0.68 : 0.62),
+          expected: bodyPosture
+            ? "Body-registered modules should be wired, consolidated, or intentionally preserved before cleanup."
+            : "Active code should have clear entrypoints and minimal unused files, exports, and dependencies.",
+          observed: bodyPosture
+            ? `${workspace.id}: ${issue.file || "workspace"} has ${summarizeKnipIssue(issue)}; ${bodyPosture.description}`
+            : `${workspace.id}: ${issue.file || "workspace"} has ${summarizeKnipIssue(issue)}.`,
+          evidence: {
+            workspace_id: workspace.id,
+            cwd: workspace.cwd,
+            issue,
+            body_registry: issue.body_registry || null,
+          },
+          ownership: {
+            zone: issue.body_registry?.body_part || "code_health",
+            likely_files: issue.file ? [path.join(workspace.cwd || "", issue.file)] : [],
+            suspected_modules: issue.body_registry?.organ
+              ? [issue.body_registry.organ]
+              : ["unused-code", "unused-export", "dependency-hygiene"],
+          },
+          suggestedStrategy: {
+            type: bodyPosture ? "wire_or_classify_body_part" : "review_clog_finding",
+            description: issue.body_registry?.action ||
+              "Review the Knip finding, mark dynamic/runtime entrypoints in config when it is a false positive, and remove only clearly dead code.",
+            priority: bodyPosture?.status === "cleanup_candidate" || hasExport ? "low" : "medium",
+          },
+          asset: issue.file ? path.join(workspace.cwd || "", issue.file) : workspace.cwd || workspace.id,
+        }),
+      );
+    }
+  }
+  return failures;
+}
+
+export function normalizeAll({ pointer, screen, appTester, voltmeter, clog }) {
+  return [
+    ...normalizePointer(pointer),
+    ...normalizeScreenGenie(screen),
+    ...normalizeAppTester(appTester),
+    ...normalizeVoltmeter(voltmeter),
+    ...normalizeClogAudit(clog),
+  ];
 }
 
 export function buildRemediationPlan(failures = []) {

@@ -15,6 +15,7 @@ Usage:
   node src/cli.mjs --target workspace-demo
   node src/cli.mjs --target hopper111-live --preflight-only
   node src/cli.mjs --target hopper111-live --journey contacts:create-contact
+  node src/cli.mjs --target sayit-live --air
   node src/cli.mjs --target finch-live --hammer
   node src/cli.mjs --target finch-live --hammer --hammer-route finch-core
   node src/cli.mjs --target hopper111-live --install-secret POINTER_CF_API_TOKEN --from-env POINTER_CF_API_TOKEN
@@ -102,9 +103,17 @@ async function main() {
 
   console.log(`FIR run: ${result.finalState.run_id}`);
   console.log(`Artifacts: ${result.artifactDir}`);
+  if (result.finalState.mode === "air") {
+    console.log(`AIR: ${result.finalState.air_status || "unknown"}`);
+    console.log(`Installed icon start URL: ${result.finalState.installed_icon_start_url || "unknown"}`);
+    console.log(`Expected app runtime URL: ${result.finalState.expected_app_runtime_url || "unknown"}`);
+  }
   console.log(`Journeys: ${result.journeys?.selected_journey_count || 0} (${(result.journeys?.selected_journey_ids || []).join(", ") || "none"})`);
   console.log(`Hammer: ${result.hammer?.plan?.status || result.finalState.hammer_status || "unknown"} (${(result.hammer?.plan?.selected_route_ids || result.finalState.hammer_routes || []).join(", ") || "none"})`);
-  console.log(`Preflight: ${result.preflight?.overall || result.finalState.preflight_status || "unknown"}`);
+  const preflightLabel = result.finalState.mode === "air"
+    ? `${result.finalState.preflight_status || "not_required_for_air"} (observed: ${result.finalState.preflight_observed_status || result.preflight?.overall || "unknown"})`
+    : result.preflight?.overall || result.finalState.preflight_status || "unknown";
+  console.log(`Preflight: ${preflightLabel}`);
   if (result.correction) {
     console.log(`Correction state: ${result.correction.state}`);
     console.log(`Should continue: ${result.correction.should_continue ? "yes" : "no"}`);

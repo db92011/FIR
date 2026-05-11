@@ -6,6 +6,7 @@
   "description": "Full Integrity Run orchestration layer for Pointer, ScreenGenie, and Voltmeter.",
   "scripts": {
     "integrity": "node src/cli.mjs",
+    "air": "node src/cli.mjs --air",
     "integrity:demo": "node src/cli.mjs --target workspace-demo",
     "history": "node src/cli.mjs --history 10",
     "install-secret": "node src/cli.mjs"

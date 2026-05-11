@@ -4,9 +4,18 @@
   "entry": "http://127.0.0.1:4175/spotter/",
   "flows": [
     "marketing",
-    "download",
+    "install-surface",
     "app"
   ],
+  "appTester": {
+    "enabled": true,
+    "kind": "pwa",
+    "url": "http://127.0.0.1:4175/spotter/?source=fir&install=1",
+    "install_contract": {
+      "app_runtime_url": "http://127.0.0.1:4175/spotter/app/",
+      "expected_start_url": "http://127.0.0.1:4175/spotter/app/"
+    }
+  },
   "max_attempts": 5,
   "preflight": {
     "screenGenie": {
@@ -15,14 +24,6 @@
           "type": "http",
           "url": "http://127.0.0.1:4175",
           "path": "/spotter/",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "type": "http",
-          "url": "http://127.0.0.1:4175",
-          "path": "/spotter/download/",
           "expected_status": [
             200
           ]
@@ -50,14 +51,6 @@
         {
           "type": "http",
           "url": "http://127.0.0.1:4175",
-          "path": "/spotter/download/",
-          "expected_status": [
-            200
-          ]
-        },
-        {
-          "type": "http",
-          "url": "http://127.0.0.1:4175",
           "path": "/spotter/app/",
           "expected_status": [
             200
@@ -75,12 +68,10 @@
     "mode": "flows_latest",
     "commands": [
       "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app spotter-circle --flow marketing",
-      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app spotter-circle --flow download",
       "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app spotter-circle --flow app"
     ],
     "latest_runs": [
       "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/spotter-circle/marketing/latest.json",
-      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/spotter-circle/download/latest.json",
       "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/spotter-circle/app/latest.json"
     ]
   },

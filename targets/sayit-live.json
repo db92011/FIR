@@ -7,6 +7,32 @@
     "app-surface",
     "translation-api"
   ],
+  "appTester": {
+    "enabled": true,
+    "kind": "pwa",
+    "url": "https://sayitapp.pages.dev/?source=fir&install=1",
+    "install_contract": {
+      "app_runtime_url": "https://sayitapp.pages.dev/app.html?source=pwa",
+      "expected_start_url": "https://sayitapp.pages.dev/app.html?source=pwa"
+    }
+  },
+  "modalChecker": {
+    "enabled": true,
+    "emulate_standalone": true,
+    "modals": [
+      {
+        "id": "sayit-plus-access-gate",
+        "open": "#plusBtn",
+        "dialog": "#plusModal .modalCard",
+        "close": "#plusCancelBtn",
+        "expect_scroll_lock": true,
+        "expect_focus_inside": true,
+        "expect_focus_trap": true,
+        "expect_escape_close": true,
+        "expect_focus_return": true
+      }
+    ]
+  },
   "journeys": [],
   "pointer": {
     "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --surface cloudflare --domain sayitapp.pages.dev",
