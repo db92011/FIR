@@ -1,0 +1,148 @@
+{
+  "id": "story-salon-live",
+  "type": "web",
+  "entry": "https://tanyabrooking.com/",
+  "flows": [
+    "home-trust",
+    "pricing",
+    "success-ai"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "pointer": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://tanyabrooking.com/",
+          "expected_status": [200, 301, 302, 308]
+        }
+      ]
+    },
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://tanyabrooking.com/",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "https://tanyabrooking.com/pricing/",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "https://tanyabrooking.com/success-stories/ai-review/",
+          "expected_status": [200, 301, 302, 308]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://tanyabrooking.com/",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "https://tanyabrooking.com/pricing/",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "https://tanyabrooking.com/llms.txt",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "https://tanyabrooking.com/ai/story-salon-profile.json",
+          "expected_status": [200, 301, 302, 308]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --surface cloudflare --mode verified --domain tanyabrooking.com",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app story-salon-live --flow home-trust",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app story-salon-live --flow pricing",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app story-salon-live --flow success-ai"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/story-salon-live/home-trust/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/story-salon-live/pricing/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/story-salon-live/success-ai/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/story-salon-live-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  },
+  "appTester": {
+    "enabled": false
+  },
+  "hammer": {
+    "enabled": true,
+    "mode": "public_live_readiness",
+    "stop_on_failure": true,
+    "cooldown_ms": 500,
+    "thresholds": {
+      "max_error_rate": 0,
+      "max_p95_ms": 2500,
+      "max_mean_ms": 1600
+    },
+    "stages": [
+      {
+        "label": "story-salon-warmup",
+        "concurrency": 4,
+        "total_requests": 8,
+        "pause_ms": 50
+      }
+    ],
+    "routes": [
+      {
+        "id": "home",
+        "label": "Story Salon home",
+        "url": "https://tanyabrooking.com/",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "pricing",
+        "label": "Story Salon pricing",
+        "url": "https://tanyabrooking.com/pricing/",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "success-ai",
+        "label": "Story Salon AI success review",
+        "url": "https://tanyabrooking.com/success-stories/ai-review/",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "llms",
+        "label": "Story Salon llms.txt",
+        "url": "https://tanyabrooking.com/llms.txt",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "ai-profile",
+        "label": "Story Salon AI profile JSON",
+        "url": "https://tanyabrooking.com/ai/story-salon-profile.json",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      }
+    ]
+  }
+}
