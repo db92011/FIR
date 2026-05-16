@@ -1,0 +1,55 @@
+{
+  "id": "query-salon-shell",
+  "type": "web",
+  "entry": "http://127.0.0.1:4174",
+  "flows": [
+    "marketing",
+    "writer-login",
+    "agent-login"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4174/",
+          "expected_status": [200]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:8788/api/health",
+          "method": "GET",
+          "expected_status": [200]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "read_latest",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app query-salon --flow marketing",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app query-salon --flow writer-login",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app query-salon --flow agent-login"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/query-salon/marketing/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/query-salon/writer-login/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/query-salon/agent-login/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/query-salon-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}

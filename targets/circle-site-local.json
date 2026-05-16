@@ -1,0 +1,149 @@
+{
+  "id": "circle-site-local",
+  "type": "web",
+  "entry": "http://127.0.0.1:4173/",
+  "flows": [
+    "home-hero",
+    "product-routing"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "pointer": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/",
+          "expected_status": [200, 301, 302, 308]
+        }
+      ]
+    },
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/",
+          "expected_status": [200, 301, 302, 308]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/finch/",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/sayit/",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/spotter/",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/spotter/install/",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/spotter/app/manifest.json",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/spotter/app/service-worker.js",
+          "expected_status": [200, 301, 302, 308]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/jrnl/",
+          "expected_status": [200, 301, 302, 308]
+        }
+      ]
+    }
+  },
+  "hammer": {
+    "enabled": true,
+    "mode": "local_preview_readiness",
+    "stages": [
+      {
+        "label": "circle-home-warmup",
+        "concurrency": 2,
+        "total_requests": 6,
+        "pause_ms": 50
+      }
+    ],
+    "thresholds": {
+      "max_error_rate": 0,
+      "max_p95_ms": 1200,
+      "max_mean_ms": 700
+    },
+    "routes": [
+      {
+        "id": "home",
+        "label": "Circle home hero",
+        "url": "http://127.0.0.1:4173/",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "finch",
+        "label": "Finch route",
+        "url": "http://127.0.0.1:4173/finch/",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "sayit",
+        "label": "SayIt route",
+        "url": "http://127.0.0.1:4173/sayit/",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "spotter",
+        "label": "Spotter route",
+        "url": "http://127.0.0.1:4173/spotter/",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "spotter-installer",
+        "label": "Spotter PWA installer",
+        "url": "http://127.0.0.1:4173/spotter/install/",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "spotter-manifest",
+        "label": "Spotter PWA manifest",
+        "url": "http://127.0.0.1:4173/spotter/app/manifest.json",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "spotter-service-worker",
+        "label": "Spotter service worker",
+        "url": "http://127.0.0.1:4173/spotter/app/service-worker.js",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      },
+      {
+        "id": "jrnl",
+        "label": "jRNL route",
+        "url": "http://127.0.0.1:4173/jrnl/",
+        "method": "GET",
+        "expected_statuses": [200, 301, 302, 308]
+      }
+    ]
+  }
+}

@@ -29,29 +29,37 @@ function check(id, label, pass, severity = "high", detail = "", evidence = {}) {
 }
 
 async function fetchText(url, { timeoutMs = 20000, headers = {} } = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  try {
-    const response = await fetch(url, {
-      headers: {
-        "user-agent": "FIR-AppTester/1.0",
-        accept: "text/html,application/json,*/*",
-        ...headers,
-      },
-      signal: controller.signal,
-      redirect: "follow",
-    });
-    const body = await response.text();
-    return {
-      ok: response.ok,
-      status: response.status,
-      url: response.url,
-      headers: Object.fromEntries(response.headers.entries()),
-      body,
-    };
-  } finally {
-    clearTimeout(timer);
+  let lastError = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "user-agent": "FIR-AppTester/1.0",
+          accept: "text/html,application/json,*/*",
+          ...headers,
+        },
+        signal: controller.signal,
+        redirect: "follow",
+      });
+      const body = await response.text();
+      return {
+        ok: response.ok,
+        status: response.status,
+        url: response.url,
+        headers: Object.fromEntries(response.headers.entries()),
+        body,
+      };
+    } catch (error) {
+      lastError = error;
+      if (attempt === 1) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    } finally {
+      clearTimeout(timer);
+    }
   }
+  throw lastError;
 }
 
 function findManifestUrl(html = "", baseUrl = "") {
@@ -422,6 +430,9 @@ export async function runAppTester(config = {}) {
   const forbidStandaloneEntryRedirect =
     installContract.forbid_standalone_entry_redirect === true ||
     installContract.forbidStandaloneEntryRedirect === true;
+  const allowInstallRouteEntry =
+    installContract.allow_install_route_entry === true ||
+    installContract.allowInstallRouteEntry === true;
   const expectedStartUrl = absoluteUrl(
     installContract.expected_start_url || installContract.expectedStartUrl || installContract.app_runtime_url || installContract.appRuntimeUrl || "",
     finalUrl
@@ -472,8 +483,8 @@ export async function runAppTester(config = {}) {
   const installShellChecks = [
     check(
       "install_shell_marketing_entry",
-      "AIR entry is the app marketing shell, not a legacy install/download route.",
-      !pathLooksLegacyInstall(finalUrl),
+      "AIR entry is the app marketing or explicitly configured install shell, not an accidental legacy route.",
+      allowInstallRouteEntry || !pathLooksLegacyInstall(finalUrl),
       "high",
       finalUrl
     ),

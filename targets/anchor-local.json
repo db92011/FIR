@@ -1,0 +1,80 @@
+{
+  "id": "anchor-local",
+  "type": "web-pwa",
+  "entry": "http://127.0.0.1:4174/home",
+  "flows": [
+    "setup",
+    "scanIntake",
+    "pausedReview"
+  ],
+  "appTester": {
+    "enabled": true,
+    "kind": "pwa",
+    "url": "http://127.0.0.1:4174/install/?source=fir&install=1",
+    "install_contract": {
+      "app_runtime_url": "http://127.0.0.1:4174/home?source=pwa",
+      "expected_start_url": "http://127.0.0.1:4174/home?source=pwa",
+      "allow_install_route_entry": true
+    },
+    "cleanup_contract": {
+      "allowed_legacy_route_patterns": [
+        "^http://127\\.0\\.0\\.1:4174/install/?(?:[?#].*)?$",
+        "^http://127\\.0\\.0\\.1:4174/install/install\\.(?:css|js)(?:[?#].*)?$"
+      ]
+    },
+    "url_contract": {
+      "allowed_human_links": [
+        "http://127.0.0.1:4174/home"
+      ]
+    }
+  },
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4174/home",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4174/home",
+          "method": "GET",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "enabled": false,
+    "reason": "Local app target; Pointer boundary verification belongs to anchor-live."
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && ANCHOR_BASE_URL='http://127.0.0.1:4174' npm run genie -- --app anchor --flow setup",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && ANCHOR_BASE_URL='http://127.0.0.1:4174' npm run genie -- --app anchor --flow scanIntake",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && ANCHOR_BASE_URL='http://127.0.0.1:4174' npm run genie -- --app anchor --flow pausedReview"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/anchor/setup/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/anchor/scanIntake/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/anchor/pausedReview/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/anchor-local-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}

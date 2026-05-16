@@ -1,0 +1,58 @@
+{
+  "id": "dinnerbell-demand-live",
+  "type": "web",
+  "entry": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/demand/brief?site_key=circlethepeople",
+  "flows": [
+    "demand-brief",
+    "fad-brief"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/demand/brief?site_key=circlethepeople",
+          "expected_status": [200]
+        },
+        {
+          "type": "http",
+          "url": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/fad/brief?limit=5",
+          "expected_status": [200]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/demand/brief?site_key=circlethepeople",
+          "method": "GET",
+          "expected_status": [200]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --profile profiles/dinnerbell-demand-live-passive.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app dinnerbell-demand-live --flow demand-brief",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app dinnerbell-demand-live --flow fad-brief"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/dinnerbell-demand-live/demand-brief/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/dinnerbell-demand-live/fad-brief/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/dinnerbell-demand-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "id": "hopper111-lucy-social-live",
+  "type": "web",
+  "entry": "https://hopper111-dashboard.pages.dev/social-engine",
+  "knownIncomplete": {
+    "status": "assembly_incomplete",
+    "audit": "/Users/dannybrooking/Documents/GitHub = master copy/Hopper111/docs/LUCY_SOCIAL_ASSEMBLY_AUDIT_2026-05-16.md",
+    "product_intent": "Internal Circle/Hopper media creator, social media poster, scheduler, content calendar, and performance-learning loop for apps and shipped work.",
+    "fir_scope": "Smoke and assembly awareness only; not a product-complete signal."
+  },
+  "flows": [
+    "lucy-social-engine",
+    "cinematic-narrative-engine",
+    "visual-provider-contracts"
+  ],
+  "pointer": {
+    "enabled": false,
+    "reason": "Lucy Social FIR target is a deployed runtime/dashboard smoke. Use hopper111-live for full boundary Pointer."
+  },
+  "screenGenie": {
+    "enabled": false,
+    "reason": "No Lucy Social visual flow exists yet; this FIR run verifies deployment/runtime nerves first."
+  },
+  "appTester": {
+    "enabled": false,
+    "reason": "Lucy Social is an operator dashboard surface, not an installable public PWA."
+  },
+  "voltmeter": {
+    "mode": "run",
+    "nerve_walk": {
+      "enabled": true,
+      "probes": [
+        {
+          "id": "lucy-social-live-access-and-internal-distribution-contract",
+          "type": "command",
+          "nerve": "lucy_social.dashboard_to_protected_worker",
+          "source": "deployed_dashboard_and_worker",
+          "outcome": "dashboard_public_worker_protected_internal_distribution_contract_present",
+          "cwd": "/Users/dannybrooking/Documents/GitHub = master copy/Hopper111",
+          "command": "node '/Users/dannybrooking/Documents/GitHub = master copy/FIR/tools/hopper-lucy-social-probe.mjs'",
+          "timeout_ms": 60000,
+          "expect": [
+            {
+              "path": "ok",
+              "equals": true,
+              "detail": "Lucy Social dashboard should be public, while Worker intelligence endpoints remain protected and the internal distribution contract is present."
+            },
+            {
+              "path": "dashboard_status",
+              "equals": 200,
+              "detail": "The deployed Lucy Social dashboard route should return HTTP 200."
+            },
+            {
+              "path": "worker_protected",
+              "equals": true,
+              "detail": "The Hopper social health endpoint must remain hidden behind Cloudflare Access."
+            },
+            {
+              "path": "intelligence_protected",
+              "equals": true,
+              "detail": "The new Lucy Social intelligence endpoint must remain hidden behind Cloudflare Access."
+            },
+            {
+              "path": "internal_distribution_contract_present",
+              "equals": true,
+              "detail": "The deployed dashboard bundle should expose the internal social distribution and scheduling contract."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "clog": {
+    "enabled": false,
+    "reason": "This target is a Lucy Social deployed-route smoke/assembly probe. Use hopper111-live for full Hopper dashboard clog/code-health coverage."
+  }
+}

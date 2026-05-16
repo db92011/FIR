@@ -1,0 +1,222 @@
+{
+  "id": "anchor-live",
+  "type": "web-pwa",
+  "entry": "https://anchor-8dq.pages.dev/home",
+  "flows": ["setup", "scan", "report"],
+  "appTester": {
+    "enabled": true,
+    "kind": "pwa",
+    "url": "https://anchor-8dq.pages.dev/install/?source=fir&install=1",
+    "install_contract": {
+      "app_runtime_url": "https://anchor-8dq.pages.dev/home?source=pwa",
+      "expected_start_url": "https://anchor-8dq.pages.dev/home?source=pwa",
+      "allow_install_route_entry": true
+    },
+    "cleanup_contract": {
+      "allowed_legacy_route_patterns": [
+        "^https://anchor-8dq\\.pages\\.dev/install/?(?:[?#].*)?$",
+        "^https://anchor-8dq\\.pages\\.dev/install/install\\.(?:css|js)(?:[?#].*)?$"
+      ]
+    },
+    "url_contract": {
+      "allowed_human_links": [
+        "https://anchor-8dq.pages.dev/home"
+      ]
+    }
+  },
+  "max_attempts": 5,
+  "preflight": {
+    "pointer": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://anchor-8dq.pages.dev/home",
+          "method": "GET",
+          "expected_status": [200]
+        },
+        {
+          "type": "http",
+          "url": "https://anchor-8dq.pages.dev/api/health",
+          "method": "GET",
+          "expected_status": [200]
+        }
+      ]
+    },
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://anchor-8dq.pages.dev/home",
+          "expected_status": [200]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://anchor-8dq.pages.dev/api/health",
+          "method": "GET",
+          "expected_status": [200]
+        },
+        {
+          "type": "http",
+          "url": "https://anchor-8dq.pages.dev/home",
+          "method": "GET",
+          "expected_status": [200]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --surface cloudflare --mode verified --profile profiles/anchor-live-passive.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && ANCHOR_BASE_URL='https://anchor-8dq.pages.dev' npm run genie -- --app anchor --flow setup"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/anchor/setup/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/anchor-live-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  },
+  "hammer": {
+    "enabled": true,
+    "mode": "public_live_route_exactness",
+    "stop_on_failure": true,
+    "cooldown_ms": 500,
+    "thresholds": {
+      "max_error_rate": 0,
+      "max_p95_ms": 12000,
+      "max_mean_ms": 12000
+    },
+    "stages": [
+      {
+        "label": "exact-path-single-pass",
+        "concurrency": 1,
+        "total_requests": 1,
+        "pause_ms": 0
+      }
+    ],
+    "routes": [
+      {
+        "id": "home",
+        "label": "PWA app shell exact path",
+        "url": "https://anchor-8dq.pages.dev/home",
+        "method": "GET",
+        "headers": {
+          "accept": "text/html"
+        },
+        "expected_statuses": [200]
+      },
+      {
+        "id": "health",
+        "label": "Pages Functions health exact path",
+        "url": "https://anchor-8dq.pages.dev/api/health",
+        "method": "GET",
+        "headers": {
+          "accept": "application/json"
+        },
+        "expected_statuses": [200]
+      },
+      {
+        "id": "projects-create",
+        "label": "Project upsert exact path",
+        "url": "https://anchor-8dq.pages.dev/api/projects",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "id": "project_fir_route_exactness",
+          "projectName": "FIR Route Exactness",
+          "address": "FIR exact path check",
+          "purpose": "home-inventory",
+          "activePerson": "Danny",
+          "locationStatus": "unconfirmed",
+          "scanComplete": false
+        },
+        "expected_statuses": [200]
+      },
+      {
+        "id": "projects-read",
+        "label": "Project read exact path",
+        "url": "https://anchor-8dq.pages.dev/api/projects/project_fir_route_exactness",
+        "method": "GET",
+        "headers": {
+          "accept": "application/json"
+        },
+        "expected_statuses": [200]
+      },
+      {
+        "id": "items-upsert",
+        "label": "Item upsert exact path",
+        "url": "https://anchor-8dq.pages.dev/api/items",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "id": "item_fir_route_exactness",
+          "projectId": "project_fir_route_exactness",
+          "person": "Danny",
+          "room": "Office",
+          "name": "FIR cable box",
+          "brand": "",
+          "category": "Miscellaneous",
+          "notes": "box of wires replacement value fifteen dollars",
+          "photoName": "",
+          "replacementValue": 15,
+          "replacementCurrency": "USD",
+          "replacementStatus": "idle",
+          "replacementRationale": "FIR owner override exact path check."
+        },
+        "expected_statuses": [200]
+      },
+      {
+        "id": "images-upload",
+        "label": "Image upload exact path",
+        "url": "https://anchor-8dq.pages.dev/api/images",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "projectId": "project_fir_route_exactness",
+          "itemId": "item_fir_route_exactness",
+          "dataUrl": "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2w=="
+        },
+        "expected_statuses": [200]
+      },
+      {
+        "id": "read-item",
+        "label": "ChatGPT item reader exact path",
+        "url": "https://anchor-8dq.pages.dev/api/read-item",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "item_id": "item_fir_route_exactness",
+          "project_id": "project_fir_route_exactness",
+          "item_name": "box of wires",
+          "category": "Miscellaneous",
+          "notes": "box of wires replacement value fifteen dollars",
+          "room": "Office",
+          "purpose": "home-inventory",
+          "replacement_value_override": 15,
+          "market_context": "U.S. replacement cost"
+        },
+        "expected_statuses": [200]
+      }
+    ]
+  }
+}

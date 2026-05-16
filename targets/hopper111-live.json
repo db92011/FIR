@@ -286,7 +286,11 @@
           ],
           "env_files": [
             "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/.env.local"
-          ]
+          ],
+          "header_map": {
+            "CF_ACCESS_CLIENT_ID": "cf-access-client-id",
+            "CF_ACCESS_CLIENT_SECRET": "cf-access-client-secret"
+          }
         }
       ]
     }
@@ -313,6 +317,77 @@
     "mode": "read_latest_or_run",
     "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && npm run hopper:lucy",
     "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
-    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs",
+    "nerve_walk": {
+      "enabled": true,
+      "probes": [
+        {
+          "id": "lucysyn-local-nerve-walk",
+          "type": "command",
+          "nerve": "lucysyn.input_to_outcome.social_google_bing",
+          "source": "social_google_bing",
+          "outcome": "review_gated_outcome_packet",
+          "cwd": "/Users/dannybrooking/Documents/GitHub = master copy/Hopper111/local-runner",
+          "command": "node tools/lucysyn-nerve-walk.mjs",
+          "timeout_ms": 120000,
+          "expect": [
+            {
+              "path": "ok",
+              "equals": true,
+              "detail": "The local LucySyn nerve walk should complete."
+            },
+            {
+              "path": "summary.failed",
+              "equals": 0,
+              "detail": "No nerve probe should fail."
+            },
+            {
+              "path": "probes.1.result.bounce_loop_risk_count",
+              "equals": 0,
+              "detail": "Social, Google, and Bing inputs should not bounce around without an outcome."
+            },
+            {
+              "path": "probes.1.result.pass_count",
+              "min": 3,
+              "detail": "Each declared input source should reach an outcome packet."
+            },
+            {
+              "path": "probes.1.result.intention_outcome_wiring.ok",
+              "equals": true,
+              "detail": "The new AUORA intention outcome wiring input should be clean and green."
+            },
+            {
+              "path": "probes.2.result.green",
+              "equals": true,
+              "detail": "The dedicated intention outcome wiring probe should match desired and perceived outcomes."
+            },
+            {
+              "path": "probes.2.result.failed",
+              "equals": 0,
+              "detail": "No intention outcome wiring row should fail."
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "clog": {
+    "enabled": true,
+    "include": "files,dependencies,exports",
+    "body_registry": "/Users/dannybrooking/Documents/GitHub = master copy/Hopper111/body-registry.json",
+    "workspaces": [
+      {
+        "id": "hopper111-dinnerbell",
+        "cwd": "/Users/dannybrooking/Documents/GitHub = master copy/Hopper111/Dinner-Bell"
+      },
+      {
+        "id": "hopper111-lucy-core",
+        "cwd": "/Users/dannybrooking/Documents/GitHub = master copy/Hopper111/Lucy-Core"
+      },
+      {
+        "id": "hopper111-local-runner",
+        "cwd": "/Users/dannybrooking/Documents/GitHub = master copy/Hopper111/local-runner"
+      }
+    ]
   }
 }

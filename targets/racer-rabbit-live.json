@@ -8,19 +8,54 @@
   ],
   "max_attempts": 5,
   "preflight": {
+    "pointer": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://racer-rabbits-little-helper.pages.dev/",
+          "method": "GET",
+          "expected_status": [200]
+        }
+      ]
+    },
     "screenGenie": {
       "requirements": [
         {
-          "type": "files",
-          "paths": [
-            "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/racer-rabbit/today-rabbit-balance/latest.json"
-          ]
+          "type": "http",
+          "url": "https://racer-rabbits-little-helper.pages.dev/",
+          "expected_status": [200]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://racer-rabbits-little-helper.pages.dev/",
+          "method": "GET",
+          "expected_status": [200]
         }
       ]
     }
   },
+  "pointer": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Pointer' && node src/cli.mjs --surface cloudflare --mode verified --profile profiles/racer-rabbit-live-passive.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Pointer/state/latest-run.json"
+  },
   "screenGenie": {
-    "mode": "read_latest",
-    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/racer-rabbit/today-rabbit-balance/latest.json"
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && npm run genie -- --app racer-rabbit --flow today-rabbit-balance"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/racer-rabbit/today-rabbit-balance/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/racer-rabbit-live-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
   }
 }

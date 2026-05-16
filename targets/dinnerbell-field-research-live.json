@@ -1,0 +1,76 @@
+{
+  "id": "dinnerbell-field-research-live",
+  "type": "web",
+  "entry": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/lucysyn/contact-shell/field-research/status?limit=3",
+  "flows": [
+    "field-research-status",
+    "field-research-write-gate"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/lucysyn/contact-shell/field-research/status?limit=3",
+          "expected_status": [200]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/lucysyn/contact-shell/field-research/status?limit=3",
+          "method": "GET",
+          "expected_status": [200]
+        },
+        {
+          "type": "http",
+          "url": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/lucysyn/contact-shell/field-research/intake",
+          "method": "POST",
+          "expected_status": [403]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "enabled": false
+  },
+  "screenGenie": {
+    "enabled": false
+  },
+  "hammer": {
+    "enabled": true,
+    "mode": "public_live_readiness",
+    "stages": [
+      {
+        "label": "field-research-status-warmup",
+        "concurrency": 2,
+        "total_requests": 4,
+        "pause_ms": 100
+      }
+    ],
+    "thresholds": {
+      "max_error_rate": 0,
+      "max_p95_ms": 2500,
+      "max_mean_ms": 1500
+    },
+    "routes": [
+      {
+        "id": "field-research-status",
+        "label": "Contact Shell field research status",
+        "url": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/lucysyn/contact-shell/field-research/status?limit=3",
+        "method": "GET",
+        "expected_statuses": [200]
+      },
+      {
+        "id": "field-research-write-gate",
+        "label": "Contact Shell field research protected intake gate",
+        "url": "https://dinnerbell-dev.txxqryxhg6.workers.dev/api/dinnerbell/lucysyn/contact-shell/field-research/intake",
+        "method": "POST",
+        "expected_statuses": [403]
+      }
+    ]
+  }
+}

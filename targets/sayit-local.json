@@ -1,0 +1,78 @@
+{
+  "id": "sayit-local",
+  "type": "web-pwa",
+  "entry": "http://127.0.0.1:4173/app?preview=app-mobile",
+  "flows": [
+    "marketing-download",
+    "generate-inspect-balance"
+  ],
+  "appTester": {
+    "enabled": true,
+    "kind": "pwa",
+    "url": "http://127.0.0.1:4173/?source=fir&install=1",
+    "install_contract": {
+      "app_runtime_url": "http://127.0.0.1:4173/app?source=pwa",
+      "expected_start_url": "http://127.0.0.1:4173/app?source=pwa"
+    },
+    "url_contract": {
+      "allowed_human_links": [
+        "http://127.0.0.1:4173/app.html?dev=1",
+        "https://circlethepeople.com/"
+      ]
+    }
+  },
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/",
+          "expected_status": [
+            200
+          ]
+        },
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/app?preview=app-mobile",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/app?preview=app-mobile",
+          "method": "GET",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "enabled": false,
+    "reason": "Local app target; Pointer boundary verification belongs to sayit-live."
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && SAYIT_BASE_URL='http://127.0.0.1:4173' npm run genie -- --app sayit --flow marketing-download",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && SAYIT_BASE_URL='http://127.0.0.1:4173' npm run genie -- --app sayit --flow generate-inspect-balance"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/sayit/marketing-download/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/sayit/generate-inspect-balance/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/sayit-local-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}

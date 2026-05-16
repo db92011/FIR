@@ -1,0 +1,56 @@
+{
+  "id": "racer-rabbit-local",
+  "type": "web",
+  "entry": "http://127.0.0.1:4173/",
+  "flows": [
+    "install-surface",
+    "today-rabbit-balance"
+  ],
+  "max_attempts": 5,
+  "preflight": {
+    "screenGenie": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    },
+    "voltmeter": {
+      "requirements": [
+        {
+          "type": "http",
+          "url": "http://127.0.0.1:4173/",
+          "method": "GET",
+          "expected_status": [
+            200
+          ]
+        }
+      ]
+    }
+  },
+  "pointer": {
+    "enabled": false,
+    "reason": "Local app target; Pointer boundary verification belongs to racer-rabbit-live."
+  },
+  "screenGenie": {
+    "mode": "flows_latest",
+    "commands": [
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && RACER_RABBIT_BASE_URL='http://127.0.0.1:4173' npm run genie -- --app racer-rabbit --flow install-surface",
+      "cd '/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie' && RACER_RABBIT_BASE_URL='http://127.0.0.1:4173' npm run genie -- --app racer-rabbit --flow today-rabbit-balance"
+    ],
+    "latest_runs": [
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/racer-rabbit/install-surface/latest.json",
+      "/Users/dannybrooking/Documents/GitHub = master copy/ScreenGenie/artifacts/visual/racer-rabbit/today-rabbit-balance/latest.json"
+    ]
+  },
+  "voltmeter": {
+    "mode": "read_latest_or_run",
+    "command": "cd '/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter' && node src/cli.mjs --profile profiles/racer-rabbit-local-runtime.json",
+    "latest_run": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/state/latest-run.json",
+    "fallback_runs_dir": "/Users/dannybrooking/Documents/GitHub = master copy/Voltmeter/runs"
+  }
+}
