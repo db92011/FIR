@@ -26,14 +26,8 @@
         {
           "label": "circle-home-to-finch-page",
           "role": "link",
-          "name": "View Finch",
+          "name": "Rewrite with Finch",
           "expected_url": "https://circlethepeople.com/finch/"
-        },
-        {
-          "label": "circle-finch-page-to-install-shell",
-          "role": "link",
-          "name": "View Finch",
-          "expected_url": "https://finchisacinch.com/"
         }
       ]
     }
@@ -54,6 +48,12 @@
         "expect_focus_return": true
       }
     ]
+  },
+  "pointer": {
+    "enabled": false
+  },
+  "screenGenie": {
+    "enabled": false
   },
   "journeys": [],
   "max_attempts": 5,

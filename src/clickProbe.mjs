@@ -30,6 +30,7 @@ function defaultSelectors() {
     "[data-install-action]",
     "#installAction",
     "#nativeInstallButton",
+    "[data-ctp-install-trigger]",
     "[data-pwa-install]",
     "[data-install]",
   ];
